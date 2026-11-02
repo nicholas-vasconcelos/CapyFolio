@@ -2,7 +2,7 @@ import { Database } from 'lucide-react';
 
 export function SpatialMapProjectCover() {
   return (
-    <div className="relative w-full h-52 sm:h-56 rounded-xl overflow-hidden border border-[#DDE2E6] bg-[#0F2C4C] select-none">
+    <div className="relative w-full h-52 sm:h-56 rounded-xl overflow-hidden border border-line bg-[#0F2C4C] select-none">
       <svg viewBox="0 0 400 240" className="w-full h-full object-cover" preserveAspectRatio="none">
         <rect width="400" height="240" fill="#12395B" />
         <path d="M0 40 Q70 25 130 55 T230 95 Q250 130 210 175 L0 215 Z" fill="#2A623D" opacity="0.9" />
@@ -24,7 +24,7 @@ export function SpatialMapProjectCover() {
           </g>
         ))}
       </svg>
-      <div className="absolute top-3.5 left-3.5 w-10 h-10 rounded-xl bg-[#1E3C61]/95 border border-white/15 flex items-center justify-center text-sky-300">
+      <div className="absolute top-3.5 left-3.5 w-10 h-10 rounded-xl bg-navy/95 border border-white/15 flex items-center justify-center text-sky-300">
         <Database className="w-5 h-5" />
       </div>
     </div>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { AlertCircle } from 'lucide-react';
 import { CapyWordmark } from '../components/CapyWordmark';
 
 export function RegisterPage({ onRegister }: { onRegister: (data: { name: string; email: string; password: string; confirmPassword: string; institution: string; course: string; period: string; focus: string; tags: string[]; bio: string; }) => Promise<string | null> }) {
@@ -65,74 +66,74 @@ export function RegisterPage({ onRegister }: { onRegister: (data: { name: string
   return (
     <div className="max-w-6xl mx-auto px-6 py-12">
       <div className="mb-8"><CapyWordmark showMascot size="lg" /></div>
-      <div className="max-w-2xl mx-auto bg-white border border-[#DDE2E6] rounded-2xl p-8">
-        <h1 className="text-2xl font-bold text-[#1E3C61]">Criar sua conta acadêmica</h1>
-        <p className="text-sm text-gray-500 mt-1 mb-6">Configure seu perfil universitário para publicar pesquisas e se conectar com estudantes.</p>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-[#182536] mb-1.5">Nome completo</label>
-              <input type="text" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} className="w-full bg-white border border-[#CBD3DA] rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-[#1E3C61]" placeholder="Ex: Gabriel Costa" />
-              {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name}</p>}
+      <div className="cf-card green block mx-auto max-w-2xl p-6 sm:p-10">
+        <h1 className="font-display text-[34px] font-extrabold leading-[1.05] tracking-[-0.025em] text-navy">Criar sua conta acadêmica</h1>
+        <div className="mt-2 mb-8 text-base leading-[1.5] text-ink-muted">Configure seu perfil universitário para publicar pesquisas e se conectar com estudantes.</div>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-[18px]">
+          <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2">
+            <div className="cf-field">
+              <label htmlFor="cadastro-name">Nome completo</label>
+              <input id="cadastro-name" type="text" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} className="cf-input" placeholder="Ex: Gabriel Costa" />
+              {errors.name && <span className="flex items-center gap-1.5 text-sm font-semibold text-ink"><AlertCircle className="h-4 w-4 flex-none" aria-hidden="true" />{errors.name}</span>}
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-[#182536] mb-1.5">E-mail institucional</label>
-              <input type="email" value={form.email} onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))} className="w-full bg-white border border-[#CBD3DA] rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-[#1E3C61]" placeholder="seu@id.uff.br" />
-              {errors.email && <p className="mt-1 text-xs text-red-600">{errors.email}</p>}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-[#182536] mb-1.5">Senha</label>
-              <input type="password" value={form.password} onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))} className="w-full bg-white border border-[#CBD3DA] rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-[#1E3C61]" placeholder="Mínimo 8 caracteres" />
-              {errors.password && <p className="mt-1 text-xs text-red-600">{errors.password}</p>}
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-[#182536] mb-1.5">Confirmar senha</label>
-              <input type="password" value={form.confirmPassword} onChange={(event) => setForm((current) => ({ ...current, confirmPassword: event.target.value }))} className="w-full bg-white border border-[#CBD3DA] rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-[#1E3C61]" placeholder="Confirme sua senha" />
-              {errors.confirmPassword && <p className="mt-1 text-xs text-red-600">{errors.confirmPassword}</p>}
+            <div className="cf-field">
+              <label htmlFor="cadastro-email">E-mail institucional</label>
+              <input id="cadastro-email" type="email" value={form.email} onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))} className="cf-input" placeholder="seu@id.uff.br" />
+              {errors.email && <span className="flex items-center gap-1.5 text-sm font-semibold text-ink"><AlertCircle className="h-4 w-4 flex-none" aria-hidden="true" />{errors.email}</span>}
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-[#182536] mb-1.5">Instituição de Ensino</label>
-              <input type="text" value={form.institution} onChange={(event) => setForm((current) => ({ ...current, institution: event.target.value }))} className="w-full bg-white border border-[#CBD3DA] rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-[#1E3C61]" />
-              {errors.institution && <p className="mt-1 text-xs text-red-600">{errors.institution}</p>}
+          <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2">
+            <div className="cf-field">
+              <label htmlFor="cadastro-password">Senha</label>
+              <input id="cadastro-password" type="password" value={form.password} onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))} className="cf-input" placeholder="Mínimo 8 caracteres" />
+              {errors.password && <span className="flex items-center gap-1.5 text-sm font-semibold text-ink"><AlertCircle className="h-4 w-4 flex-none" aria-hidden="true" />{errors.password}</span>}
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-[#182536] mb-1.5">Curso</label>
-              <input type="text" value={form.course} onChange={(event) => setForm((current) => ({ ...current, course: event.target.value }))} className="w-full bg-white border border-[#CBD3DA] rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-[#1E3C61]" />
-              {errors.course && <p className="mt-1 text-xs text-red-600">{errors.course}</p>}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-[#182536] mb-1.5">Período</label>
-              <input type="text" value={form.period} onChange={(event) => setForm((current) => ({ ...current, period: event.target.value }))} className="w-full bg-white border border-[#CBD3DA] rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-[#1E3C61]" />
-              {errors.period && <p className="mt-1 text-xs text-red-600">{errors.period}</p>}
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-[#182536] mb-1.5">Área / Foco de Atuação</label>
-              <input type="text" value={form.focus} onChange={(event) => setForm((current) => ({ ...current, focus: event.target.value }))} className="w-full bg-white border border-[#CBD3DA] rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-[#1E3C61]" />
+            <div className="cf-field">
+              <label htmlFor="cadastro-confirmPassword">Confirmar senha</label>
+              <input id="cadastro-confirmPassword" type="password" value={form.confirmPassword} onChange={(event) => setForm((current) => ({ ...current, confirmPassword: event.target.value }))} className="cf-input" placeholder="Confirme sua senha" />
+              {errors.confirmPassword && <span className="flex items-center gap-1.5 text-sm font-semibold text-ink"><AlertCircle className="h-4 w-4 flex-none" aria-hidden="true" />{errors.confirmPassword}</span>}
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-[#182536] mb-1.5">Tags (separadas por vírgula)</label>
-            <input type="text" value={form.tagsInput} onChange={(event) => setForm((current) => ({ ...current, tagsInput: event.target.value }))} className="w-full bg-white border border-[#CBD3DA] rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-[#1E3C61]" />
+          <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2">
+            <div className="cf-field">
+              <label htmlFor="cadastro-institution">Instituição de Ensino</label>
+              <input id="cadastro-institution" type="text" value={form.institution} onChange={(event) => setForm((current) => ({ ...current, institution: event.target.value }))} className="cf-input" />
+              {errors.institution && <span className="flex items-center gap-1.5 text-sm font-semibold text-ink"><AlertCircle className="h-4 w-4 flex-none" aria-hidden="true" />{errors.institution}</span>}
+            </div>
+            <div className="cf-field">
+              <label htmlFor="cadastro-course">Curso</label>
+              <input id="cadastro-course" type="text" value={form.course} onChange={(event) => setForm((current) => ({ ...current, course: event.target.value }))} className="cf-input" />
+              {errors.course && <span className="flex items-center gap-1.5 text-sm font-semibold text-ink"><AlertCircle className="h-4 w-4 flex-none" aria-hidden="true" />{errors.course}</span>}
+            </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-[#182536] mb-1.5">Resumo acadêmico</label>
-            <textarea rows={3} value={form.bio} onChange={(event) => setForm((current) => ({ ...current, bio: event.target.value }))} placeholder="Fale brevemente sobre suas linhas de pesquisa e interesses..." className="w-full bg-white border border-[#CBD3DA] rounded-lg p-3.5 text-sm focus:outline-none focus:border-[#1E3C61]" />
+          <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2">
+            <div className="cf-field">
+              <label htmlFor="cadastro-period">Período</label>
+              <input id="cadastro-period" type="text" value={form.period} onChange={(event) => setForm((current) => ({ ...current, period: event.target.value }))} className="cf-input" />
+              {errors.period && <span className="flex items-center gap-1.5 text-sm font-semibold text-ink"><AlertCircle className="h-4 w-4 flex-none" aria-hidden="true" />{errors.period}</span>}
+            </div>
+            <div className="cf-field">
+              <label htmlFor="cadastro-focus">Área / Foco de Atuação</label>
+              <input id="cadastro-focus" type="text" value={form.focus} onChange={(event) => setForm((current) => ({ ...current, focus: event.target.value }))} className="cf-input" />
+            </div>
           </div>
 
-          <div className="flex items-center justify-between pt-4 border-t border-[#DDE2E6]">
-            <Link to="/login" className="px-4 py-2.5 rounded-lg border border-[#CBD3DA] text-sm font-medium text-gray-600 hover:bg-gray-50 cursor-pointer">Voltar para Login</Link>
-            <button type="submit" disabled={isSubmitting} className="px-6 py-2.5 rounded-lg bg-[#1E3C61] hover:bg-[#162D49] text-white text-sm font-semibold cursor-pointer disabled:opacity-70">{isSubmitting ? 'Criando...' : 'Criar conta'}</button>
+          <div className="cf-field">
+            <label htmlFor="cadastro-tagsInput">Tags (separadas por vírgula)</label>
+            <input id="cadastro-tagsInput" type="text" value={form.tagsInput} onChange={(event) => setForm((current) => ({ ...current, tagsInput: event.target.value }))} className="cf-input" />
+          </div>
+
+          <div className="cf-field">
+            <label htmlFor="cadastro-bio">Resumo acadêmico</label>
+            <textarea id="cadastro-bio" rows={3} value={form.bio} onChange={(event) => setForm((current) => ({ ...current, bio: event.target.value }))} placeholder="Fale brevemente sobre suas linhas de pesquisa e interesses..." className="cf-input h-auto py-3" />
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t-2 border-line pt-6">
+            <Link to="/login" className="cf-btn">Voltar para Login</Link>
+            <button type="submit" disabled={isSubmitting} className="cf-btn primary disabled:opacity-70">{isSubmitting ? 'Criando...' : 'Criar conta'}</button>
           </div>
         </form>
       </div>

@@ -1,6 +1,6 @@
 export function LlmEventCover() {
   return (
-    <div className="relative w-full h-48 sm:h-52 rounded-xl overflow-hidden border border-[#DDE2E6] bg-[#0B2545] flex flex-col items-center justify-center select-none">
+    <div className="relative w-full h-48 sm:h-52 rounded-xl overflow-hidden border border-line bg-[#0B2545] flex flex-col items-center justify-center select-none">
       <svg viewBox="0 0 400 220" className="w-full h-full" fill="none">
         <defs>
           <radialGradient id="llmGlow" cx="50%" cy="50%" r="50%">

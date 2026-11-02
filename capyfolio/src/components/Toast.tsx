@@ -4,8 +4,8 @@ export function Toast({ message, onClose }: { message: string | null; onClose: (
   if (!message) return null;
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 max-w-md bg-white text-[#182536] px-4 py-3.5 rounded-xl border border-[#DDE2E6] shadow-[0_2px_8px_rgba(0,0,0,0.06)] flex items-center gap-3">
-      <CheckCircle2 className="w-5 h-5 text-[#1B8243] shrink-0" />
+    <div className="fixed bottom-6 right-6 z-50 max-w-md bg-white text-ink px-4 py-3.5 rounded-xl border border-line shadow-[0_2px_8px_rgba(0,0,0,0.06)] flex items-center gap-3">
+      <CheckCircle2 className="w-5 h-5 text-brand-green shrink-0" />
       <span className="text-sm font-medium">{message}</span>
       <button onClick={onClose} className="text-gray-400 hover:text-gray-600 ml-2 cursor-pointer" type="button">
         <X className="w-4 h-4" />

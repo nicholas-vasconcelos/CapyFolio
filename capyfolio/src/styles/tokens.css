@@ -1,0 +1,218 @@
+/* CapyFolio design tokens, generated from design-system/tokens.json. Edit the JSON, not this file. */
+
+@font-face {
+  font-family: "Bricolage Grotesque";
+  src: url("/fonts/bricolage-grotesque-latin-500-normal.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Bricolage Grotesque";
+  src: url("/fonts/bricolage-grotesque-latin-700-normal.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Bricolage Grotesque";
+  src: url("/fonts/bricolage-grotesque-latin-800-normal.woff2") format("woff2");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Instrument Sans";
+  src: url("/fonts/instrument-sans-latin-400-normal.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Instrument Sans";
+  src: url("/fonts/instrument-sans-latin-500-normal.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Instrument Sans";
+  src: url("/fonts/instrument-sans-latin-600-normal.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Instrument Sans";
+  src: url("/fonts/instrument-sans-latin-700-normal.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: light;
+
+  /* Colour */
+  --paper: #FAF7F2;
+  --surface: #FFFFFF;
+  --paper-deep: #EFEBE4;
+  --ink: #182536;
+  --ink-soft: #3A4B5F;
+  --ink-muted: #56616D;
+  --ink-subtle: #7A848E;
+  --placeholder: #6B7682;
+  --navy: #1E3C61;
+  --navy-tint: #EAF0F5;
+  --on-navy: var(--paper);
+  --on-navy-muted: #DCE5EE;
+  --gold-light: #FFD98A;
+  --green: #1B8243;
+  --green-tint: #EAF5EE;
+  --green-ink: #14602F;
+  --gold: #FEA402;
+  --gold-tint: #FFF4D6;
+  --amber-ink: #8A5500;
+  --line: #DDE2E6;
+  --line-strong: #CBD3DA;
+  --field-border: #8A96A3;
+  --dot-grid: rgba(250,247,242,0.13);
+  --focus: var(--gold);
+
+  /* Type families */
+  --font-display: "Bricolage Grotesque", system-ui, sans-serif;
+  --font-sans: "Instrument Sans", system-ui, sans-serif;
+
+  /* Type styles */
+  --text-display-xl-size: 104px;
+  --text-display-xl-line-height: 0.9;
+  --text-display-xl-weight: 800;
+  --text-display-xl-tracking: -0.045em;
+  --text-display-lg-size: 80px;
+  --text-display-lg-line-height: 0.96;
+  --text-display-lg-weight: 800;
+  --text-display-lg-tracking: -0.035em;
+  --text-display-size: 68px;
+  --text-display-line-height: 0.98;
+  --text-display-weight: 800;
+  --text-display-tracking: -0.04em;
+  --text-title-size: 56px;
+  --text-title-line-height: 1;
+  --text-title-weight: 800;
+  --text-title-tracking: -0.03em;
+  --text-heading-1-size: 48px;
+  --text-heading-1-line-height: 1.05;
+  --text-heading-1-weight: 800;
+  --text-heading-1-tracking: -0.025em;
+  --text-heading-2-size: 32px;
+  --text-heading-2-line-height: 1.1;
+  --text-heading-2-weight: 800;
+  --text-heading-2-tracking: -0.02em;
+  --text-heading-3-size: 26px;
+  --text-heading-3-line-height: 1.1;
+  --text-heading-3-weight: 800;
+  --text-heading-3-tracking: -0.02em;
+  --text-stat-size: 28px;
+  --text-stat-line-height: 1.1;
+  --text-stat-weight: 800;
+  --text-stat-tracking: -0.02em;
+  --text-card-title-size: 21px;
+  --text-card-title-line-height: 1.2;
+  --text-card-title-weight: 700;
+  --text-button-lg-size: 17px;
+  --text-button-lg-line-height: 1.2;
+  --text-button-lg-weight: 700;
+  --text-lead-size: 19px;
+  --text-lead-line-height: 1.6;
+  --text-lead-weight: 400;
+  --text-eyebrow-size: 17px;
+  --text-eyebrow-line-height: 1.3;
+  --text-eyebrow-weight: 600;
+  --text-body-size: 16px;
+  --text-body-line-height: 1.5;
+  --text-body-weight: 400;
+  --text-nav-size: 16px;
+  --text-nav-line-height: 1.2;
+  --text-nav-weight: 600;
+  --text-label-size: 15px;
+  --text-label-line-height: 1.3;
+  --text-label-weight: 700;
+  --text-body-sm-size: 15px;
+  --text-body-sm-line-height: 1.5;
+  --text-body-sm-weight: 400;
+  --text-caption-size: 14px;
+  --text-caption-line-height: 1.4;
+  --text-caption-weight: 400;
+  --text-micro-size: 13px;
+  --text-micro-line-height: 1.3;
+  --text-micro-weight: 700;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-1_5: 6px;
+  --space-2: 8px;
+  --space-2_5: 10px;
+  --space-3: 12px;
+  --space-3_5: 14px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-14: 56px;
+  --space-16: 64px;
+  --space-18: 72px;
+  --space-24: 96px;
+
+  /* Radius */
+  --radius-sm: 12px;
+  --radius-md: 14px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-3xl: 28px;
+  --radius-4xl: 32px;
+  --radius-pill: 999px;
+  --radius-full: 50%;
+
+  /* Shadow */
+  --shadow-xs: 2px 2px 0 #182536;
+  --shadow-sm: 3px 3px 0 #182536;
+  --shadow-md: 4px 4px 0 #182536;
+  --shadow-hover: 6px 6px 0 #182536;
+  --shadow-primary-sm: 3px 3px 0 #FEA402;
+  --shadow-primary: 4px 4px 0 #FEA402;
+  --shadow-on-navy: 4px 4px 0 #FAF7F2;
+  --shadow-card: 8px 8px 0 #1E3C61;
+  --shadow-card-gold: 8px 8px 0 #FEA402;
+  --shadow-card-green: 8px 8px 0 #1B8243;
+  --shadow-photo: 10px 10px 0 #FEA402;
+
+  /* Border */
+  --border-width: 2px;
+  --border-width-photo: 3px;
+  --focus-width: 3px;
+  --focus-offset: 3px;
+
+  /* Size */
+  --target-min: 44px;
+  --chip-h: 40px;
+  --control-nav: 46px;
+  --control-md: 48px;
+  --control-lg: 52px;
+  --control-xl: 56px;
+  --search-hero: 60px;
+  --avatar-md: 56px;
+  --avatar-lg: 68px;
+  --photo-hero: 280px;
+  --content-max: 1344px;
+  --dot-pitch: 26px;
+}

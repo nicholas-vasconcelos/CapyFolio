@@ -1,22 +1,26 @@
-import { CapyMascot } from './CapyMascot';
+import capyMascot from '../assets/capy-mascot.png';
+import capyWordmark from '../assets/capyfolio-wordmark.png';
 
-export function CapyWordmark({ showMascot = true, size = 'md' }: { showMascot?: boolean; size?: 'sm' | 'md' | 'lg' }) {
-  const textSize = size === 'lg' ? 'text-2xl' : size === 'sm' ? 'text-lg' : 'text-xl';
+// The wordmark image is for light grounds only: its navy "Capy" disappears on navy, so onNavy falls back to
+// live text. The mascot must not sit directly on navy either: pass showMascot={false} there and use a MascotDisc.
+export function CapyWordmark({ showMascot = true, size = 'md', onNavy = false }: { showMascot?: boolean; size?: 'sm' | 'md' | 'lg'; onNavy?: boolean }) {
+  const mascotSize = size === 'lg' ? 'h-[50px] w-11' : 'h-[41px] w-9';
+
+  if (onNavy) {
+    const textSize = size === 'lg' ? 'text-[30px]' : size === 'sm' ? 'text-[21px]' : 'text-[25px]';
+    return (
+      <b className={`select-none font-display font-extrabold leading-none tracking-[-0.02em] text-on-navy ${textSize}`}>
+        Capy<span className="text-gold">Folio</span>
+      </b>
+    );
+  }
+
+  const wordmarkSize = size === 'lg' ? 'h-12' : size === 'sm' ? 'h-8' : 'h-10';
 
   return (
-    <div className="inline-flex items-center gap-2 select-none">
-      {showMascot && <CapyMascot className={size === 'lg' ? 'w-10 h-10' : 'w-8 h-8'} />}
-      <div className={`relative font-extrabold tracking-tight leading-none flex items-baseline ${textSize}`}>
-        <svg viewBox="0 0 44 28" className={size === 'lg' ? 'w-6 h-4.5 absolute -top-2.5 -left-2' : 'w-5 h-4 absolute -top-2 -left-1.5'} fill="none">
-          <polygon points="3,13 21,4 40,10 22,19" fill="#1E3C61" stroke="#182536" strokeWidth="2" />
-          <path d="M12 15V22C16 19 24 18 29 20V14" fill="#1E3C61" stroke="#182536" strokeWidth="2" />
-          <path d="M7 14L5 24" stroke="#1E3C61" strokeWidth="2.2" strokeLinecap="round" />
-          <circle cx="5" cy="24.5" r="2" fill="#1E3C61" />
-        </svg>
-        <span className="text-[#1B8243]">Cap</span>
-        <span className="text-[#1E3C61]">y</span>
-        <span className="text-[#FEA402]">Folio</span>
-      </div>
+    <div className="inline-flex items-center gap-2.5 select-none">
+      {showMascot && <img src={capyMascot} alt="" className={`${mascotSize} object-contain`} />}
+      <img src={capyWordmark} alt="CapyFolio" className={`${wordmarkSize} w-auto`} />
     </div>
   );
 }

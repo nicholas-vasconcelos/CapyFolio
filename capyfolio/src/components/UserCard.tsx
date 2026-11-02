@@ -1,50 +1,52 @@
-import { ArrowUpRight, Building2, GraduationCap, Users } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { User } from '../types';
+import { Avatar } from './Avatar';
 
-export function UserCard({ user, isConnected, onToggleConnect }: { user: User; isConnected?: boolean; onToggleConnect?: () => void }) {
+// Person cards cycle their hard shadow green, gold, navy, ink across a grid.
+const shadows = [
+  'shadow-[5px_5px_0_var(--green)]',
+  'shadow-[5px_5px_0_var(--gold)]',
+  'shadow-[5px_5px_0_var(--navy)]',
+  'shadow-[5px_5px_0_var(--ink)]',
+];
+const avatarTones = ['green', 'navy', 'gold'] as const;
+
+export function UserCard({ user, index = 0, isConnected, onToggleConnect }: { user: User; index?: number; isConnected?: boolean; onToggleConnect?: () => void }) {
   return (
-    <article className="capy-card p-5 bg-white">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3 min-w-0">
-          <img src={user.avatar} alt={user.name} className="w-12 h-12 rounded-full object-cover border border-[#DDE2E6]" />
-          <div className="min-w-0">
-            <Link to={`/perfil/${user.id}`} className="text-base font-bold text-[#182536] hover:text-[#1E3C61] block truncate">{user.name}</Link>
-            <p className="text-xs text-gray-500 truncate">{user.focus}</p>
-          </div>
+    <article className={`cf-person max-w-none ${shadows[index % shadows.length]}`}>
+      <div className="flex items-start gap-4">
+        <Avatar name={user.name} src={user.avatar} size="lg" tone={avatarTones[index % avatarTones.length]} />
+        <div className="min-w-0 flex-1">
+          <h3><Link to={`/perfil/${user.id}`} className="block break-words text-ink hover:text-navy">{user.name}</Link></h3>
+          <span className="role mt-0.5 block">{user.focus}</span>
         </div>
-        <button type="button" onClick={onToggleConnect} className={`text-xs font-semibold px-2.5 py-1.5 rounded-full border-[2px] border-[#182536] ${isConnected ? 'bg-[#E8F5ED] text-[#1B8243] shadow-[4px_4px_0_#1B8243]' : 'bg-white text-[#1E3C61] shadow-[4px_4px_0_#FEA402] hover:bg-[#FAF7F2]'} cursor-pointer`}>
+        <span className="mt-1 flex-none text-sm text-ink-muted">{user.connections ?? 0} conexões</span>
+      </div>
+
+      <div className="text-base">
+        <strong>{user.course}</strong>
+        <br />
+        <span className="text-ink-muted">{user.period} • {user.institution}</span>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {user.tags.slice(0, 3).map((tag) => (
+          <span key={tag} className="cf-tag skill">{tag}</span>
+        ))}
+      </div>
+
+      <div className="foot justify-between">
+        <span className="text-[13px] font-bold text-green-ink">Perfil acadêmico</span>
+        <button type="button" onClick={onToggleConnect} aria-pressed={!!isConnected} className="cf-chip">
           {isConnected ? 'Conectado' : 'Conectar'}
         </button>
       </div>
 
-      <div className="mt-4 space-y-2.5 text-[11px] text-gray-500">
-        <div className="flex items-center gap-2">
-          <Building2 className="w-3.5 h-3.5 text-[#1E3C61]" />
-          <span>{user.institution}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <GraduationCap className="w-3.5 h-3.5 text-[#1B8243]" />
-          <span>{user.course} • {user.period}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Users className="w-3.5 h-3.5 text-[#FEA402]" />
-          <span>{user.connections ?? 0} conexões</span>
-        </div>
-      </div>
-
-      <div className="mt-4 flex flex-wrap gap-2">
-        {user.tags.slice(0, 3).map((tag) => (
-          <span key={tag} className="rounded-full bg-[#FAF7F2] border border-[#DDE2E6] px-2 py-1 text-[10px] font-medium text-gray-600">{tag}</span>
-        ))}
-      </div>
-
-      <div className="mt-4 pt-3 border-t border-[#F1F3F5] flex items-center justify-between">
-        <span className="text-[11px] text-gray-500">Perfil acadêmico</span>
-        <Link to={`/perfil/${user.id}`} className="inline-flex items-center gap-1 text-xs font-semibold text-[#1E3C61] hover:underline">
-          Ver perfil <ArrowUpRight className="w-3.5 h-3.5" />
-        </Link>
-      </div>
+      <Link to={`/perfil/${user.id}`} className="cf-btn primary w-full">
+        Ver perfil
+        <ArrowRight className="h-[18px] w-[18px]" aria-hidden="true" />
+      </Link>
     </article>
   );
 }

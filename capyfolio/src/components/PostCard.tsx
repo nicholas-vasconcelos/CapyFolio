@@ -1,5 +1,6 @@
 import { Heart, MessageSquare, Sparkles } from 'lucide-react';
 import type { Post } from '../types';
+import { Avatar } from './Avatar';
 
 export function PostCard({
   post,
@@ -12,45 +13,50 @@ export function PostCard({
   onToggleLike: () => void;
   onAddComment: (text: string) => void;
 }) {
+  const replyLabel = currentUserName ? `Responder como ${currentUserName}...` : 'Escreva um comentário...';
+
   return (
-    <article className="bg-white border border-[#DDE2E6] rounded-2xl p-5 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
-      <div className="flex items-start gap-3">
-        <img src={post.authorAvatar} alt={post.authorName} className="w-11 h-11 rounded-full object-cover border border-[#DDE2E6]" />
+    <article className="rounded-2xl border-2 border-ink bg-surface p-6 shadow-card md:p-7">
+      <div className="flex items-start gap-4">
+        <Avatar name={post.authorName} src={post.authorAvatar} size="md" tone="navy" />
         <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-semibold text-[#182536]">{post.authorName}</p>
-              <p className="text-[11px] text-gray-500">{post.authorRole} • {post.authorInstitution}</p>
+          <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+            <div className="min-w-0 flex-[1_1_200px]">
+              <p className="font-display text-[21px] font-bold leading-[1.2] text-ink">{post.authorName}</p>
+              <p className="text-[15px] text-ink-muted">{post.authorRole} • {post.authorInstitution}</p>
             </div>
-            <span className="text-[10px] text-gray-500 uppercase tracking-[0.12em]">{post.category}</span>
+            <span className="cf-tag topic flex-none">{post.category}</span>
           </div>
 
-          <p className="mt-3 text-sm leading-relaxed text-[#182536] whitespace-pre-line">{post.content}</p>
+          <p className="mt-4 whitespace-pre-line text-[19px] leading-[1.6] text-ink">{post.content}</p>
 
-          <div className="mt-4 flex items-center gap-5 text-[11px] text-gray-500">
-            <button type="button" onClick={onToggleLike} className={`inline-flex items-center gap-1.5 ${post.likedByMe ? 'text-[#1E3C61]' : 'text-gray-500'} cursor-pointer`}>
-              <Heart className={`w-3.5 h-3.5 ${post.likedByMe ? 'fill-[#1E3C61]' : ''}`} /> {post.likes}
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            <button type="button" onClick={onToggleLike} aria-pressed={!!post.likedByMe} className={`cf-counter ${post.likedByMe ? 'liked' : ''}`}>
+              <Heart className={`h-5 w-5 ${post.likedByMe ? 'fill-ink' : ''}`} aria-hidden="true" /> {post.likes}
             </button>
-            <span className="inline-flex items-center gap-1.5"><MessageSquare className="w-3.5 h-3.5" /> {post.comments.length}</span>
-            <span className="inline-flex items-center gap-1.5"><Sparkles className="w-3.5 h-3.5" /> {post.timestamp}</span>
+            <span className="cf-counter cursor-default"><MessageSquare className="h-5 w-5" aria-hidden="true" /> {post.comments.length}</span>
+            <span className="ml-auto inline-flex items-center gap-1.5 text-sm text-ink-muted"><Sparkles className="h-4 w-4" aria-hidden="true" /> {post.timestamp}</span>
           </div>
 
           {post.comments.length > 0 && (
-            <div className="mt-4 space-y-2 border-t border-[#F1F3F5] pt-3">
+            <div className="mt-5 flex flex-col gap-3">
               {post.comments.map((comment) => (
-                <div key={comment.id} className="rounded-xl bg-[#FAF7F2] border border-[#DDE2E6] px-3 py-2">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="text-xs font-semibold text-[#182536]">{comment.authorName}</span>
-                    <span className="text-[10px] text-gray-500">{comment.timestamp}</span>
+                <div key={comment.id} className="cf-comment">
+                  <Avatar name={comment.authorName} size="xs" />
+                  <div className="flex min-w-0 flex-1 flex-col gap-1">
+                    <div className="flex items-center justify-between gap-3">
+                      <strong>{comment.authorName}</strong>
+                      <span className="text-sm text-ink-muted">{comment.timestamp}</span>
+                    </div>
+                    <p className="text-base leading-[1.5] text-ink">{comment.text}</p>
                   </div>
-                  <p className="mt-1 text-xs text-gray-600 leading-relaxed">{comment.text}</p>
                 </div>
               ))}
             </div>
           )}
 
           <form
-            className="mt-4 flex gap-2"
+            className="mt-5 flex flex-wrap gap-3"
             onSubmit={(event) => {
               event.preventDefault();
               const form = event.currentTarget as HTMLFormElement;
@@ -64,10 +70,11 @@ export function PostCard({
             <input
               name="comment"
               type="text"
-              placeholder={currentUserName ? `Responder como ${currentUserName}...` : 'Escreva um comentário...'}
-              className="flex-1 bg-[#FAF7F2] border border-[#CBD3DA] rounded-lg px-3 py-2 text-xs text-[#182536] placeholder:text-gray-400 focus:outline-none focus:border-[#1E3C61]"
+              aria-label={replyLabel}
+              placeholder={replyLabel}
+              className="cf-input h-12 min-w-[200px] flex-1"
             />
-            <button type="submit" className="px-3 py-2 bg-[#1E3C61] text-white rounded-lg text-xs font-semibold hover:bg-[#162D49] cursor-pointer">Enviar</button>
+            <button type="submit" className="cf-btn primary">Enviar</button>
           </form>
         </div>
       </div>

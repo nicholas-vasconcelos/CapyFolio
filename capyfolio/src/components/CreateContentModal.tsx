@@ -64,11 +64,11 @@ export function CreateContentModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#182536]/35 p-3 backdrop-blur-[2px] sm:p-4">
-      <div className="w-full max-w-2xl overflow-hidden rounded-3xl border border-[#DDE2E6] bg-white shadow-[0_20px_60px_rgba(0,0,0,0.12)]">
-        <div className="flex items-center justify-between border-b border-[#DDE2E6] px-4 py-4 sm:px-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/35 p-3 backdrop-blur-[2px] sm:p-4">
+      <div className="w-full max-w-2xl overflow-hidden rounded-3xl border border-line bg-white shadow-[0_20px_60px_rgba(0,0,0,0.12)]">
+        <div className="flex items-center justify-between border-b border-line px-4 py-4 sm:px-6">
           <div>
-            <h3 className="text-lg font-bold text-[#1E3C61]">Publicar conteúdo</h3>
+            <h3 className="text-lg font-bold text-navy">Publicar conteúdo</h3>
             <p className="text-xs text-gray-500">Compartilhe uma atualização ou um novo projeto acadêmico.</p>
           </div>
           <button type="button" onClick={onClose} className="flex h-11 w-11 items-center justify-center rounded-lg text-gray-400 transition-colors hover:text-gray-600">
@@ -76,11 +76,11 @@ export function CreateContentModal({
           </button>
         </div>
 
-        <div className="flex border-b border-[#DDE2E6] px-4 pt-3 sm:px-6">
-          <button type="button" onClick={() => setActiveTab('project')} className={`px-4 py-2 text-sm font-semibold rounded-t-xl border-b-2 ${activeTab === 'project' ? 'border-[#1E3C61] text-[#1E3C61]' : 'border-transparent text-gray-500'}`}>
+        <div className="flex border-b border-line px-4 pt-3 sm:px-6">
+          <button type="button" onClick={() => setActiveTab('project')} className={`px-4 py-2 text-sm font-semibold rounded-t-xl border-b-2 ${activeTab === 'project' ? 'border-navy text-navy' : 'border-transparent text-gray-500'}`}>
             Projeto
           </button>
-          <button type="button" onClick={() => setActiveTab('post')} className={`px-4 py-2 text-sm font-semibold rounded-t-xl border-b-2 ${activeTab === 'post' ? 'border-[#1E3C61] text-[#1E3C61]' : 'border-transparent text-gray-500'}`}>
+          <button type="button" onClick={() => setActiveTab('post')} className={`px-4 py-2 text-sm font-semibold rounded-t-xl border-b-2 ${activeTab === 'post' ? 'border-navy text-navy' : 'border-transparent text-gray-500'}`}>
             Postagem
           </button>
         </div>
@@ -88,50 +88,50 @@ export function CreateContentModal({
         {activeTab === 'project' ? (
           <div className="space-y-4 p-4 sm:p-6">
             <div>
-              <label className="block text-xs font-semibold text-[#182536] mb-1.5">Título do projeto</label>
-              <input value={projectDraft.title} onChange={(event) => setProjectDraft((current) => ({ ...current, title: event.target.value }))} className="min-h-[44px] w-full rounded-lg border border-[#CBD3DA] bg-white px-3.5 py-2.5 text-sm focus:border-[#1E3C61] focus:outline-none" placeholder="Ex: Observatório de dados urbanos e climáticos" />
+              <label className="block text-xs font-semibold text-ink mb-1.5">Título do projeto</label>
+              <input value={projectDraft.title} onChange={(event) => setProjectDraft((current) => ({ ...current, title: event.target.value }))} className="min-h-[44px] w-full rounded-lg border border-line-strong bg-white px-3.5 py-2.5 text-sm focus:border-navy focus:outline-none" placeholder="Ex: Observatório de dados urbanos e climáticos" />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[#182536] mb-1.5">Resumo curto</label>
-              <input value={projectDraft.shortDescription} onChange={(event) => setProjectDraft((current) => ({ ...current, shortDescription: event.target.value }))} className="min-h-[44px] w-full rounded-lg border border-[#CBD3DA] bg-white px-3.5 py-2.5 text-sm focus:border-[#1E3C61] focus:outline-none" placeholder="Descreva o contexto e a contribuição do projeto." />
+              <label className="block text-xs font-semibold text-ink mb-1.5">Resumo curto</label>
+              <input value={projectDraft.shortDescription} onChange={(event) => setProjectDraft((current) => ({ ...current, shortDescription: event.target.value }))} className="min-h-[44px] w-full rounded-lg border border-line-strong bg-white px-3.5 py-2.5 text-sm focus:border-navy focus:outline-none" placeholder="Descreva o contexto e a contribuição do projeto." />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[#182536] mb-1.5">Descrição detalhada</label>
-              <textarea value={projectDraft.summary} onChange={(event) => setProjectDraft((current) => ({ ...current, summary: event.target.value }))} rows={4} className="min-h-[44px] w-full rounded-lg border border-[#CBD3DA] bg-white px-3.5 py-2.5 text-sm focus:border-[#1E3C61] focus:outline-none" placeholder="Descreva a metodologia, objetivos e principais resultados esperados." />
+              <label className="block text-xs font-semibold text-ink mb-1.5">Descrição detalhada</label>
+              <textarea value={projectDraft.summary} onChange={(event) => setProjectDraft((current) => ({ ...current, summary: event.target.value }))} rows={4} className="min-h-[44px] w-full rounded-lg border border-line-strong bg-white px-3.5 py-2.5 text-sm focus:border-navy focus:outline-none" placeholder="Descreva a metodologia, objetivos e principais resultados esperados." />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-[#182536] mb-1.5">Área</label>
-                <input value={projectDraft.area} onChange={(event) => setProjectDraft((current) => ({ ...current, area: event.target.value }))} className="min-h-[44px] w-full rounded-lg border border-[#CBD3DA] bg-white px-3.5 py-2.5 text-sm focus:border-[#1E3C61] focus:outline-none" />
+                <label className="block text-xs font-semibold text-ink mb-1.5">Área</label>
+                <input value={projectDraft.area} onChange={(event) => setProjectDraft((current) => ({ ...current, area: event.target.value }))} className="min-h-[44px] w-full rounded-lg border border-line-strong bg-white px-3.5 py-2.5 text-sm focus:border-navy focus:outline-none" />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#182536] mb-1.5">Tipo</label>
-                <input value={projectDraft.type} onChange={(event) => setProjectDraft((current) => ({ ...current, type: event.target.value }))} className="w-full bg-white border border-[#CBD3DA] rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-[#1E3C61]" />
+                <label className="block text-xs font-semibold text-ink mb-1.5">Tipo</label>
+                <input value={projectDraft.type} onChange={(event) => setProjectDraft((current) => ({ ...current, type: event.target.value }))} className="w-full bg-white border border-line-strong rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-navy" />
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-[#182536] mb-1.5">Status</label>
-                <select value={projectDraft.status} onChange={(event) => setProjectDraft((current) => ({ ...current, status: event.target.value }))} className="min-h-[44px] w-full rounded-lg border border-[#CBD3DA] bg-white px-3.5 py-2.5 text-sm focus:border-[#1E3C61] focus:outline-none">
+                <label className="block text-xs font-semibold text-ink mb-1.5">Status</label>
+                <select value={projectDraft.status} onChange={(event) => setProjectDraft((current) => ({ ...current, status: event.target.value }))} className="min-h-[44px] w-full rounded-lg border border-line-strong bg-white px-3.5 py-2.5 text-sm focus:border-navy focus:outline-none">
                   <option>Em andamento</option>
                   <option>Concluído</option>
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#182536] mb-1.5">Período</label>
-                <input value={projectDraft.period} onChange={(event) => setProjectDraft((current) => ({ ...current, period: event.target.value }))} className="min-h-[44px] w-full rounded-lg border border-[#CBD3DA] bg-white px-3.5 py-2.5 text-sm focus:border-[#1E3C61] focus:outline-none" />
+                <label className="block text-xs font-semibold text-ink mb-1.5">Período</label>
+                <input value={projectDraft.period} onChange={(event) => setProjectDraft((current) => ({ ...current, period: event.target.value }))} className="min-h-[44px] w-full rounded-lg border border-line-strong bg-white px-3.5 py-2.5 text-sm focus:border-navy focus:outline-none" />
               </div>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[#182536] mb-1.5">Tags</label>
-              <input value={projectDraft.tags} onChange={(event) => setProjectDraft((current) => ({ ...current, tags: event.target.value }))} className="min-h-[44px] w-full rounded-lg border border-[#CBD3DA] bg-white px-3.5 py-2.5 text-sm focus:border-[#1E3C61] focus:outline-none" placeholder="Python, IA, Dados, Pesquisa" />
+              <label className="block text-xs font-semibold text-ink mb-1.5">Tags</label>
+              <input value={projectDraft.tags} onChange={(event) => setProjectDraft((current) => ({ ...current, tags: event.target.value }))} className="min-h-[44px] w-full rounded-lg border border-line-strong bg-white px-3.5 py-2.5 text-sm focus:border-navy focus:outline-none" placeholder="Python, IA, Dados, Pesquisa" />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[#182536] mb-1.5">URL externa</label>
-              <input value={projectDraft.url} onChange={(event) => setProjectDraft((current) => ({ ...current, url: event.target.value }))} className="min-h-[44px] w-full rounded-lg border border-[#CBD3DA] bg-white px-3.5 py-2.5 text-sm focus:border-[#1E3C61] focus:outline-none" placeholder="https://github.com/seu-projeto" />
+              <label className="block text-xs font-semibold text-ink mb-1.5">URL externa</label>
+              <input value={projectDraft.url} onChange={(event) => setProjectDraft((current) => ({ ...current, url: event.target.value }))} className="min-h-[44px] w-full rounded-lg border border-line-strong bg-white px-3.5 py-2.5 text-sm focus:border-navy focus:outline-none" placeholder="https://github.com/seu-projeto" />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[#182536] mb-1.5">Principais resultados</label>
+              <label className="block text-xs font-semibold text-ink mb-1.5">Principais resultados</label>
               {projectDraft.keyResults.map((result, index) => (
                 <div key={index} className="flex gap-2 mb-2">
                   <input
@@ -141,28 +141,28 @@ export function CreateContentModal({
                       next[index] = event.target.value;
                       setProjectDraft((current) => ({ ...current, keyResults: next }));
                     }}
-                    className="min-h-[44px] flex-1 rounded-lg border border-[#CBD3DA] bg-white px-3.5 py-2.5 text-sm focus:border-[#1E3C61] focus:outline-none"
+                    className="min-h-[44px] flex-1 rounded-lg border border-line-strong bg-white px-3.5 py-2.5 text-sm focus:border-navy focus:outline-none"
                     placeholder="Resultado-chave"
                   />
-                  <button type="button" onClick={() => setProjectDraft((current) => ({ ...current, keyResults: current.keyResults.filter((_, i) => i !== index) }))} className="px-2 rounded-lg border border-[#CBD3DA] text-gray-500 hover:bg-gray-50 cursor-pointer">–</button>
+                  <button type="button" onClick={() => setProjectDraft((current) => ({ ...current, keyResults: current.keyResults.filter((_, i) => i !== index) }))} className="px-2 rounded-lg border border-line-strong text-gray-500 hover:bg-gray-50 cursor-pointer">–</button>
                 </div>
               ))}
-              <button type="button" onClick={() => setProjectDraft((current) => ({ ...current, keyResults: [...current.keyResults, ''] }))} className="min-h-[44px] text-xs font-semibold text-[#1E3C61] hover:underline">+ Adicionar resultado</button>
+              <button type="button" onClick={() => setProjectDraft((current) => ({ ...current, keyResults: [...current.keyResults, ''] }))} className="min-h-[44px] text-xs font-semibold text-navy hover:underline">+ Adicionar resultado</button>
             </div>
-            <label className="inline-flex items-center gap-2 text-sm text-[#182536]">
-              <input type="checkbox" checked={projectDraft.setAsFeatured} onChange={(event) => setProjectDraft((current) => ({ ...current, setAsFeatured: event.target.checked }))} className="w-4 h-4 accent-[#1E3C61]" />
+            <label className="inline-flex items-center gap-2 text-sm text-ink">
+              <input type="checkbox" checked={projectDraft.setAsFeatured} onChange={(event) => setProjectDraft((current) => ({ ...current, setAsFeatured: event.target.checked }))} className="w-4 h-4 accent-navy" />
               Definir como projeto em destaque no meu perfil
             </label>
             <div className="flex justify-end gap-3 pt-2">
-              <button type="button" onClick={onClose} className="px-4 py-2.5 rounded-lg border border-[#CBD3DA] text-sm font-medium text-gray-600 hover:bg-gray-50 cursor-pointer">Cancelar</button>
-              <button type="button" onClick={submitProject} className="min-h-[44px] rounded-lg bg-[#1E3C61] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#162D49]">Publicar projeto</button>
+              <button type="button" onClick={onClose} className="px-4 py-2.5 rounded-lg border border-line-strong text-sm font-medium text-gray-600 hover:bg-gray-50 cursor-pointer">Cancelar</button>
+              <button type="button" onClick={submitProject} className="min-h-[44px] rounded-lg bg-navy px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#162D49]">Publicar projeto</button>
             </div>
           </div>
         ) : (
           <div className="space-y-4 p-4 sm:p-6">
             <div>
-              <label className="block text-xs font-semibold text-[#182536] mb-1.5">Categoria</label>
-              <select value={postDraft.category} onChange={(event) => setPostDraft((current) => ({ ...current, category: event.target.value }))} className="min-h-[44px] w-full rounded-lg border border-[#CBD3DA] bg-white px-3.5 py-2.5 text-sm focus:border-[#1E3C61] focus:outline-none">
+              <label className="block text-xs font-semibold text-ink mb-1.5">Categoria</label>
+              <select value={postDraft.category} onChange={(event) => setPostDraft((current) => ({ ...current, category: event.target.value }))} className="min-h-[44px] w-full rounded-lg border border-line-strong bg-white px-3.5 py-2.5 text-sm focus:border-navy focus:outline-none">
                 <option>Palestra Oficial</option>
                 <option>Pesquisa Acadêmica</option>
                 <option>Dados e Análise</option>
@@ -171,12 +171,12 @@ export function CreateContentModal({
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[#182536] mb-1.5">Conteúdo</label>
-              <textarea value={postDraft.content} onChange={(event) => setPostDraft((current) => ({ ...current, content: event.target.value }))} rows={6} className="min-h-[44px] w-full rounded-lg border border-[#CBD3DA] bg-white px-3.5 py-2.5 text-sm focus:border-[#1E3C61] focus:outline-none" placeholder="Compartilhe uma atualização, resultado ou oportunidade acadêmica..." />
+              <label className="block text-xs font-semibold text-ink mb-1.5">Conteúdo</label>
+              <textarea value={postDraft.content} onChange={(event) => setPostDraft((current) => ({ ...current, content: event.target.value }))} rows={6} className="min-h-[44px] w-full rounded-lg border border-line-strong bg-white px-3.5 py-2.5 text-sm focus:border-navy focus:outline-none" placeholder="Compartilhe uma atualização, resultado ou oportunidade acadêmica..." />
             </div>
             <div className="flex justify-end gap-3 pt-2">
-              <button type="button" onClick={onClose} className="px-4 py-2.5 rounded-lg border border-[#CBD3DA] text-sm font-medium text-gray-600 hover:bg-gray-50 cursor-pointer">Cancelar</button>
-              <button type="button" onClick={() => { if (postDraft.content.trim()) { onSubmitPost({ category: postDraft.category, content: postDraft.content.trim() }); } }} className="min-h-[44px] rounded-lg bg-[#1E3C61] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#162D49]">Publicar atualização</button>
+              <button type="button" onClick={onClose} className="px-4 py-2.5 rounded-lg border border-line-strong text-sm font-medium text-gray-600 hover:bg-gray-50 cursor-pointer">Cancelar</button>
+              <button type="button" onClick={() => { if (postDraft.content.trim()) { onSubmitPost({ category: postDraft.category, content: postDraft.content.trim() }); } }} className="min-h-[44px] rounded-lg bg-navy px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#162D49]">Publicar atualização</button>
             </div>
           </div>
         )}

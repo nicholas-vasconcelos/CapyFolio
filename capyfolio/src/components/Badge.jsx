@@ -4,23 +4,23 @@ import { Code, BookOpen, Briefcase, Award } from 'lucide-react';
 const badgeConfig = {
   tech: {
     label: 'Inovação & Tech',
-    bg: 'bg-primary/10',
-    text: 'text-primary',
-    border: 'border-primary/20',
+    bg: 'bg-navy/10',
+    text: 'text-navy',
+    border: 'border-navy/20',
     icon: Code,
   },
   academic: {
     label: 'Vida Acadêmica',
-    bg: 'bg-secondary/10',
-    text: 'text-secondary',
-    border: 'border-secondary/20',
+    bg: 'bg-brand-green/10',
+    text: 'text-brand-green',
+    border: 'border-brand-green/20',
     icon: BookOpen,
   },
   career: {
     label: 'Pronto p/ Mercado',
-    bg: 'bg-accent/15',
+    bg: 'bg-gold/15',
     text: 'text-amber-800',
-    border: 'border-accent/30',
+    border: 'border-gold/30',
     icon: Briefcase,
   },
   verified: {
