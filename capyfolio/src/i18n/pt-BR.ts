@@ -8,6 +8,8 @@ export const ptBR = {
   profile: {
     lockNote: 'Parte fixa do perfil',
     customize: 'Personalizar perfil',
+    moreActions: 'Mais ações do perfil',
+    actions: 'Ações do perfil',
     newProject: 'Novo projeto',
     share: 'Compartilhar portfólio',
     connect: 'Conectar',

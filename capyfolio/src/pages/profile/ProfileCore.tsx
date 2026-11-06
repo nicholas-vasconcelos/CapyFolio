@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
-import { LayoutGrid, Lock, Plus, Share2, Users } from 'lucide-react';
+import { Lock, Users } from 'lucide-react';
 import type { User } from '../../types';
 import { plural, t } from '../../i18n';
+import { HeroActions } from './HeroActions';
 
 /*
  * The fixed part of every profile ("Layout A, revised"): the navy hero and the
@@ -16,7 +17,7 @@ interface ProfileCoreProps {
   isConnected: boolean;
   onToggleConnect: () => void;
   onOpenNewProject: () => void;
-  /** Widget shown above the action buttons in the hero. Empty is allowed. */
+  /** Widget in the top right of the hero. Empty is allowed. */
   heroSlot?: ReactNode;
   /** Widget mode is on: the fixed part shows its lock. */
   isEditing?: boolean;
@@ -47,9 +48,24 @@ export function ProfileCore({ user, isOwnProfile, isConnected, onToggleConnect, 
   return (
     <>
       <section className="capy-hero-shell overflow-hidden">
-        <div className="mx-auto box-border flex max-w-[1344px] flex-col gap-8 px-4 pb-24 pt-8 sm:px-6 md:px-12 md:pb-[120px] md:pt-16 xl:flex-row xl:items-start xl:justify-between">
+        <div className="relative mx-auto box-border flex max-w-[1344px] flex-col gap-8 px-4 pb-24 pt-20 sm:px-6 md:px-12 md:pb-[120px] md:pt-24 xl:flex-row xl:items-start xl:justify-between">
+          {/* Top row, above the content: the lock note on the left, the actions on the right.
+              Kept out of the columns so the photo and the hero widget start at the same height. */}
+          {showLock && (
+            <div className="absolute left-4 top-3 flex h-11 items-center sm:left-6 md:left-12 md:top-4">
+              <LockNote />
+            </div>
+          )}
+          <div className="absolute right-4 top-3 z-10 sm:right-6 md:right-12 md:top-4">
+            <HeroActions
+              isOwnProfile={isOwnProfile}
+              isEditing={isEditing}
+              onOpenNewProject={onOpenNewProject}
+              onToggleEditing={onToggleEditing}
+            />
+          </div>
+
           <div className="min-w-0 flex-1">
-            {showLock && <div className="mb-6"><LockNote /></div>}
             <div className="flex flex-col gap-5 sm:flex-row sm:items-center md:gap-8">
               <img
                 src={user.avatar || ''}
@@ -74,26 +90,12 @@ export function ProfileCore({ user, isOwnProfile, isConnected, onToggleConnect, 
 
           <div className="flex flex-col gap-5 xl:flex-[0_1_380px]">
             {heroSlot}
-            <div className="flex flex-wrap gap-3.5 xl:justify-end">
-              {isOwnProfile ? (
-                <button type="button" onClick={onOpenNewProject} className="cf-btn cta on-navy-cta h-[52px]">
-                  <Plus className="h-5 w-5" aria-hidden="true" /> {t.profile.newProject}
-                </button>
-              ) : (
-                <button type="button" onClick={onToggleConnect} aria-pressed={isConnected} className="cf-btn on-navy h-[52px]">
-                  {isConnected ? t.profile.connected : t.profile.connect}
-                </button>
-              )}
-              {isOwnProfile && onToggleEditing && (
-                <button type="button" onClick={onToggleEditing} aria-pressed={isEditing} className="cf-btn on-navy h-[52px] aria-pressed:bg-on-navy aria-pressed:text-navy">
-                  <LayoutGrid className="h-5 w-5" aria-hidden="true" /> {t.profile.customize}
-                </button>
-              )}
-              <button type="button" className="cf-btn on-navy h-[52px]">
-                <Share2 className="h-5 w-5" aria-hidden="true" />
-                {t.profile.share}
+            {/* Connecting is a visitor's main action, so it stays a visible button. */}
+            {!isOwnProfile && (
+              <button type="button" onClick={onToggleConnect} aria-pressed={isConnected} className="cf-btn on-navy h-[52px] self-start xl:self-end">
+                {isConnected ? t.profile.connected : t.profile.connect}
               </button>
-            </div>
+            )}
           </div>
         </div>
       </section>
