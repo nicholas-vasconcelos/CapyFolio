@@ -19,6 +19,7 @@ export interface User {
   linkedin?: string;
   lattes?: string;
   connections?: number;
+  profileLayout?: ProfileLayout;
 }
 
 export interface ProjectFile {
@@ -120,3 +121,33 @@ export type AuthRegisterData = {
   tags: string[];
   bio: string;
 };
+
+/* Profile widgets */
+
+export type WidgetType = 'pinnedProject' | 'projectGallery' | 'keyResult' | 'links' | 'badges' | 'freeText';
+/** P = 1×1, M = 2×1, G = 2×2, Faixa = full width of the grid. */
+export type WidgetSize = 'P' | 'M' | 'G' | 'Faixa';
+export type WidgetBg = 'surface' | 'paper' | 'navyTint' | 'greenTint' | 'goldTint' | 'navy';
+export type WidgetAccent = 'navy' | 'green' | 'gold' | 'ink';
+
+export interface WidgetTheme {
+  bg: WidgetBg;
+  accent: WidgetAccent;
+}
+
+export interface WidgetInstance {
+  id: string;
+  type: WidgetType;
+  size: WidgetSize;
+  theme: WidgetTheme;
+  /** Validated per widget type by sanitizeLayout. */
+  config: Record<string, unknown>;
+}
+
+export interface ProfileLayout {
+  version: 1;
+  /** Top-right slot of the profile hero. null = empty, which is allowed. */
+  hero: WidgetInstance | null;
+  /** Body grid, in display order. */
+  widgets: WidgetInstance[];
+}

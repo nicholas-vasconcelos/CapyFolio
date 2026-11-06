@@ -1,6 +1,6 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
 import { BrowserRouter, Link, Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom';
-import { ArrowUpRight, CheckCircle2, Plus, Search, Share2 } from 'lucide-react';
+import { ArrowUpRight, CheckCircle2, Search } from 'lucide-react';
 
 import { AppDataProvider, useAppData } from './context/AppDataContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -13,12 +13,13 @@ import { EventCard } from './components/EventCard';
 import { PostCard } from './components/PostCard';
 import { ProjectCard } from './components/ProjectCard';
 import { UserCard } from './components/UserCard';
-import Badge from './components/Badge';
 import { Avatar } from './components/Avatar';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
+import { ProfilePage } from './pages/profile/ProfilePage';
 import { postService } from './services/postService';
 import { projectService } from './services/projectService';
+import { userService } from './services/userService';
 import type { Event, Post, Project, User } from './types';
 
 function AppShell() {
@@ -111,6 +112,22 @@ function AppShell() {
     showToast(next.includes(userId) ? 'Conexão acadêmica adicionada!' : 'Conexão removida.');
   };
 
+  /** Single place that persists a changed user and mirrors it into app state. */
+  const handleUpdateUser = async (next: User) => {
+    setUsers((previous) => previous.map((user) => (user.id === next.id ? next : user)));
+    await userService.update(next);
+  };
+
+  /** The logged-in user as stored in `users`, which is fresher than the session copy. */
+  const currentUserRecord = () => users.find((user) => user.id === currentUser?.id) ?? currentUser;
+
+  const handleSetFeaturedProject = async (projectId: string) => {
+    const owner = currentUserRecord();
+    if (!owner) return;
+    await handleUpdateUser({ ...owner, featuredProjectId: projectId });
+    showToast('Projeto em destaque atualizado.');
+  };
+
   const handleCreatePost = async (payload: { category: string; content: string; relatedProjectId?: string | null }) => {
     if (!currentUser) return;
 
@@ -181,9 +198,8 @@ function AppShell() {
     setProjects((previous) => [saved, ...previous]);
 
     if (payload.setAsFeatured) {
-      setUsers((previous) =>
-        previous.map((user) => (user.id === currentUser.id ? { ...user, featuredProjectId: saved.id } : user)),
-      );
+      const owner = currentUserRecord();
+      if (owner) await handleUpdateUser({ ...owner, featuredProjectId: saved.id });
     }
 
     showToast('Projeto publicado com sucesso!');
@@ -255,8 +271,8 @@ function AppShell() {
             <Route path="/eventos" element={<ProtectedRoute><EventsPage events={events} registeredEventIds={registeredEventIds} onToggleRegistration={handleToggleEventRegistration} /></ProtectedRoute>} />
             <Route path="/evento/:id" element={<ProtectedRoute><EventDetailPage events={events} registeredEventIds={registeredEventIds} onToggleRegistration={handleToggleEventRegistration} /></ProtectedRoute>} />
             <Route path="/pessoas" element={<ProtectedRoute><PeoplePage users={users} connectedUserIds={connectedUserIds} onToggleConnect={handleToggleConnect} initialSearch={globalSearchQuery} /></ProtectedRoute>} />
-            <Route path="/perfil" element={<ProtectedRoute><ProfilePage currentUser={currentUser} users={users} projects={projects} connectedUserIds={connectedUserIds} onToggleConnect={handleToggleConnect} onSetFeaturedProject={(projectId) => { setUsers((previous) => previous.map((user) => (user.id === currentUser.id ? { ...user, featuredProjectId: projectId } : user))); showToast('Projeto em destaque atualizado.'); }} onOpenNewProject={() => { setCreateModalDefaultTab('project'); setIsCreateModalOpen(true); }} /></ProtectedRoute>} />
-            <Route path="/perfil/:id" element={<ProtectedRoute><ProfilePage currentUser={currentUser} users={users} projects={projects} connectedUserIds={connectedUserIds} onToggleConnect={handleToggleConnect} onSetFeaturedProject={(projectId) => { setUsers((previous) => previous.map((user) => (user.id === currentUser.id ? { ...user, featuredProjectId: projectId } : user))); showToast('Projeto em destaque atualizado.'); }} onOpenNewProject={() => { setCreateModalDefaultTab('project'); setIsCreateModalOpen(true); }} /></ProtectedRoute>} />
+            <Route path="/perfil" element={<ProtectedRoute><ProfilePage currentUser={currentUser} users={users} projects={projects} connectedUserIds={connectedUserIds} onToggleConnect={handleToggleConnect} onSetFeaturedProject={handleSetFeaturedProject} onUpdateUser={handleUpdateUser} onOpenNewProject={() => { setCreateModalDefaultTab('project'); setIsCreateModalOpen(true); }} /></ProtectedRoute>} />
+            <Route path="/perfil/:id" element={<ProtectedRoute><ProfilePage currentUser={currentUser} users={users} projects={projects} connectedUserIds={connectedUserIds} onToggleConnect={handleToggleConnect} onSetFeaturedProject={handleSetFeaturedProject} onUpdateUser={handleUpdateUser} onOpenNewProject={() => { setCreateModalDefaultTab('project'); setIsCreateModalOpen(true); }} /></ProtectedRoute>} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Layout>
@@ -760,168 +776,6 @@ function PeoplePage({ users, connectedUserIds, onToggleConnect, initialSearch }:
         {filteredUsers.map((user, index) => (
           <UserCard key={user.id} user={user} index={index} isConnected={connectedUserIds.includes(user.id)} onToggleConnect={() => onToggleConnect(user.id)} />
         ))}
-      </main>
-    </div>
-  );
-}
-
-function ProfilePage({ currentUser, users, projects, connectedUserIds, onToggleConnect, onSetFeaturedProject, onOpenNewProject }: {
-  currentUser: User;
-  users: User[];
-  projects: Project[];
-  connectedUserIds: string[];
-  onToggleConnect: (userId: string) => void;
-  onSetFeaturedProject: (projectId: string) => void;
-  onOpenNewProject: () => void;
-}) {
-  const { id } = useParams();
-  const profileUser = users.find((user) => user.id === id) ?? currentUser;
-  const isOwnProfile = !id || id === currentUser.id;
-  const visibleProjects = projects.filter((project) => project.authorIds.includes(profileUser.id));
-  const featuredProject = projects.find((project) => project.id === profileUser.featuredProjectId) ?? visibleProjects[0];
-
-  return (
-    <div className="min-h-screen bg-paper text-ink">
-      <section className="capy-hero-shell overflow-hidden">
-        <div className="mx-auto box-border max-w-[1344px] px-4 pb-16 pt-8 sm:px-6 md:px-12 md:pb-24 md:pt-16">
-          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-            <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-              <img src={profileUser.avatar || ''} alt={profileUser.name} className="h-[200px] w-[200px] rounded-4xl border-[3px] border-paper object-cover shadow-photo sm:h-[240px] sm:w-[240px] md:h-[280px] md:w-[280px]" />
-              <div className="min-w-0">
-                <h1 className="m-0 font-display text-[clamp(2.9rem,9vw,6.5rem)] font-extrabold leading-[0.9] tracking-[-0.045em] text-on-navy md:text-[104px]">{profileUser.name.split(' ')[0]}</h1>
-                <p className="mt-2 font-display text-base font-bold leading-[1.2] text-gold-light sm:text-[22px] md:text-[26px]">{profileUser.focus}</p>
-                <p className="mt-1 text-sm text-on-navy-muted sm:text-base md:text-lg">{profileUser.institution}</p>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-3.5 md:justify-end">
-              {isOwnProfile ? (
-                <button type="button" onClick={onOpenNewProject} className="cf-btn cta on-navy-cta h-[52px]">
-                  <Plus className="h-5 w-5" aria-hidden="true" /> Novo projeto
-                </button>
-              ) : (
-                <button type="button" onClick={() => onToggleConnect(profileUser.id)} aria-pressed={connectedUserIds.includes(profileUser.id)} className="cf-btn on-navy h-[52px]">
-                  {connectedUserIds.includes(profileUser.id) ? 'Conectado' : 'Conectar'}
-                </button>
-              )}
-              <button type="button" className="cf-btn on-navy h-[52px]">
-                <Share2 className="h-5 w-5" aria-hidden="true" />
-                Compartilhar portfólio
-              </button>
-            </div>
-          </div>
-
-          <p className="mt-8 max-w-[62ch] text-base leading-[1.6] text-on-navy-muted sm:text-[18px] md:text-[19px]">{profileUser.bio || 'Estudante com foco em projetos práticos, inovação e desenvolvimento de soluções digitais com impacto profissional real.'}</p>
-
-          <div className="mt-8 flex flex-wrap gap-2.5">
-            {profileUser.tags.slice(0, 6).map((tag) => (
-              <span key={tag} className="cf-tag on-navy">{tag}</span>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <main className="mx-auto -mt-14 max-w-[1344px] box-border px-4 pb-[88px] sm:px-6 md:px-12">
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          <div className="cf-stat shadow-[5px_5px_0_var(--green)]">
-            <span>Curso</span>
-            <strong>{profileUser.course}</strong>
-          </div>
-          <div className="cf-stat shadow-[5px_5px_0_var(--gold)]">
-            <span>Período</span>
-            <strong>{profileUser.period}</strong>
-          </div>
-          <div className="cf-stat shadow-[5px_5px_0_var(--navy)]">
-            <span>Conexões</span>
-            <strong className="[font-variant-numeric:tabular-nums]">{profileUser.connections ?? 0}</strong>
-          </div>
-        </div>
-
-        {profileUser.badges && profileUser.badges.length > 0 && (
-          <div className="mt-8 flex flex-wrap gap-3">
-            {profileUser.badges.map((badgeKey) => (
-              <Badge key={badgeKey} type={badgeKey} />
-            ))}
-          </div>
-        )}
-
-        <div className="mt-10 grid grid-cols-1 gap-8 xl:grid-cols-[0.8fr_1.2fr]">
-          <div className="flex flex-col gap-4 self-start rounded-2xl border-2 border-ink bg-navy-tint p-7 shadow-card">
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="font-display text-[26px] font-extrabold leading-[1.1] tracking-[-0.02em] text-navy">Especialidades</h3>
-              <span className="cf-tag topic">Perfil</span>
-            </div>
-            <p className="text-base leading-[1.5] text-ink-soft">
-              Áreas de atuação e principais competências acadêmicas do perfil profissional.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {profileUser.tags.map((tag) => (
-                <span key={tag} className="cf-tag">{tag}</span>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-8">
-            {featuredProject && (
-              <div className="cf-card gold">
-                <h3>Projeto em destaque</h3>
-                <div className="overflow-hidden rounded-lg border-2 border-ink bg-surface">
-                  <img src={featuredProject.media || ''} alt={featuredProject.title} className="h-40 w-full object-cover" />
-                </div>
-                <div>
-                  <strong className="block font-display text-[21px] font-bold leading-[1.2] text-ink">{featuredProject.title}</strong>
-                  <span className="mt-1 block text-[15px] text-ink-muted">{featuredProject.area}</span>
-                </div>
-                {isOwnProfile && (
-                  <button type="button" onClick={() => onSetFeaturedProject(featuredProject.id)} className="self-start text-[15px] font-bold text-navy hover:underline">
-                    Atualizar destaque
-                  </button>
-                )}
-              </div>
-            )}
-
-            <div className="rounded-2xl border-2 border-ink bg-surface p-7 shadow-card-green">
-              <div className="flex items-center justify-between gap-3">
-                <h3 className="font-display text-[26px] font-extrabold leading-[1.1] tracking-[-0.02em] text-navy">Outros projetos</h3>
-                {isOwnProfile && visibleProjects.length > 0 && (
-                  <button type="button" onClick={onOpenNewProject} className="cf-link hover:underline">Adicionar projeto</button>
-                )}
-              </div>
-
-              {visibleProjects.length === 0 ? (
-                <div className="cf-empty mt-6">
-                  <p>Você ainda não publicou nenhum projeto.</p>
-                  {isOwnProfile && (
-                    <button type="button" onClick={onOpenNewProject} className="cf-btn cta">
-                      Criar meu primeiro projeto
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2">
-                  {visibleProjects.map((project) => (
-                    <div key={project.id} className="cf-project">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className={`cf-tag ${project.status === 'Concluído' ? 'done' : 'progress'} px-3 py-1 text-[13px]`}>{project.status}</span>
-                        {profileUser.featuredProjectId === project.id && <span className="text-sm font-bold text-green-ink">Destaque</span>}
-                      </div>
-                      <strong>{project.title}</strong>
-                      <span className="sum">{project.area}</span>
-                      <div className="mt-auto flex gap-2">
-                        <Link to={`/projeto/${project.id}`} className="cf-btn primary h-11 flex-1 px-4 text-[15px]">Abrir</Link>
-                        {isOwnProfile && (
-                          <button type="button" onClick={() => onSetFeaturedProject(project.id)} className="cf-btn h-11 px-4 text-[15px]">
-                            Destaque
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
       </main>
     </div>
   );
