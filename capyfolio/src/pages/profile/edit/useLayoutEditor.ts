@@ -107,6 +107,8 @@ export function useLayoutEditor({ user, projects, initialLayout, onUpdateUser, a
         await onUpdateUser({ ...user, profileLayout: clean, featuredProjectId });
         dispatch({ type: 'saved', layout: clean });
         announce(t.editor.saved);
+      } catch {
+        // onUpdateUser already rolled back and showed an error toast; keep the draft so nothing is lost.
       } finally {
         setSaving(false);
       }

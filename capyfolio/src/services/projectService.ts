@@ -1,47 +1,104 @@
+import { supabase } from '../lib/supabase';
 import type { Project } from '../types';
-import projectsData from '../data/projects.json';
+import { check } from './errors';
+import { toProject } from './mappers';
 
-const STORAGE_KEY = 'capyfolio_projects';
-
-const readProjects = async (): Promise<Project[]> => {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (raw) {
-    return JSON.parse(raw) as Project[];
-  }
-  const seeded = projectsData as Project[];
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
-  return seeded;
+export type NewProject = {
+  title: string;
+  shortDescription: string;
+  summary: string;
+  keyResults: string[];
+  methodology: string;
+  institution: string;
+  area: string;
+  type: string;
+  status: string;
+  period: string;
+  tags: string[];
+  url?: string;
+  mediaUrl?: string | null;
 };
 
 export const projectService = {
   async list(): Promise<Project[]> {
-    return readProjects();
+    const rows = check(
+      await supabase
+        .from('projects_view')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .order('project_date', { ascending: false }),
+      'projectService.list',
+    );
+    return rows.map(toProject);
   },
 
   async getById(id: string): Promise<Project | undefined> {
-    const projects = await readProjects();
-    return projects.find((project) => project.id === id);
+    const row = check(await supabase.from('projects_view').select('*').eq('id', id).maybeSingle(), 'projectService.getById');
+    return row ? toProject(row) : undefined;
   },
 
-  async create(project: Project): Promise<Project> {
-    const projects = await readProjects();
-    projects.unshift(project);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
-    return project;
+  /** Creates a project owned by `authorId` (the signed-in profile) and lists them as its first author. */
+  async create(input: NewProject, authorId: string): Promise<Project> {
+    const created = check(
+      await supabase
+        .from('projects')
+        .insert({
+          created_by: authorId,
+          title: input.title,
+          short_description: input.shortDescription,
+          summary: input.summary,
+          key_results: input.keyResults,
+          methodology: input.methodology,
+          institution: input.institution,
+          area: input.area,
+          type: input.type,
+          status: input.status,
+          period: input.period,
+          tags: input.tags,
+          url: input.url || null,
+          media_url: input.mediaUrl ?? null,
+        })
+        .select('id')
+        .single(),
+      'projectService.create',
+    );
+    check(
+      await supabase.from('project_authors').insert({ project_id: created.id, profile_id: authorId, position: 0 }),
+      'projectService.create(authors)',
+    );
+    const saved = await projectService.getById(created.id);
+    if (!saved) throw new Error('projectService.create: project not readable after insert');
+    return saved;
   },
 
   async update(project: Project): Promise<Project> {
-    const projects = await readProjects();
-    const index = projects.findIndex((entry) => entry.id === project.id);
-    if (index === -1) return project;
-    projects[index] = project;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
-    return project;
+    check(
+      await supabase
+        .from('projects')
+        .update({
+          title: project.title,
+          short_description: project.shortDescription,
+          summary: project.summary,
+          key_results: project.keyResults,
+          methodology: project.methodology,
+          institution: project.institution,
+          area: project.area,
+          type: project.type,
+          status: project.status,
+          period: project.period,
+          tags: project.tags,
+          url: project.url || null,
+          media_url: project.media ?? null,
+        })
+        .eq('id', project.id)
+        .select('id')
+        .single(),
+      'projectService.update',
+    );
+    return (await projectService.getById(project.id)) ?? project;
   },
 
   async remove(id: string): Promise<void> {
-    const projects = await readProjects();
-    const filtered = projects.filter((project) => project.id !== id);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+    check(await supabase.from('projects').delete().eq('id', id), 'projectService.remove');
   },
 };

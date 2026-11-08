@@ -17,7 +17,9 @@ A ideia central é aproximar a comunidade acadêmica, ajudando estudantes e pesq
 ## Estrutura do repositório
 
 - `capyfolio/` — aplicação principal em React + TypeScript + Vite;
-- `capyfolio/src/` — componentes, páginas, contextos, serviços e dados da aplicação;
+- `capyfolio/src/` — componentes, páginas, contextos e serviços da aplicação;
+- `capyfolio/src/lib/` — cliente Supabase, tipos gerados do banco e envio de imagens;
+- `capyfolio/scripts/` — gerador dos dados de exemplo (`generate-seed.mjs`) a partir de `scripts/seed-data/*.json`;
 - `capyfolio/public/` — arquivos públicos estáticos;
 - `capyfolio/package.json` — scripts de execução e dependências.
 
@@ -35,13 +37,22 @@ A ideia central é aproximar a comunidade acadêmica, ajudando estudantes e pesq
    npm install
    ```
 
-3. Inicie a aplicação em modo de desenvolvimento:
+3. Configure o Supabase: copie `capyfolio/.env.example` para `capyfolio/.env.local` e preencha as duas variáveis abaixo (o arquivo `.env.local` é ignorado pelo git).
+
+   | Variável | Valor |
+   |---|---|
+   | `VITE_SUPABASE_URL` | URL do projeto (Supabase > Project Settings > API) |
+   | `VITE_SUPABASE_ANON_KEY` | chave publishable/anon. Nunca use a chave `service_role` no frontend. |
+
+   Na Vercel, cadastre as mesmas duas variáveis em Production, Preview e Development. Sem elas, o app não inicia e mostra o erro no console.
+
+4. Inicie a aplicação em modo de desenvolvimento:
 
    ```bash
    npm run dev
    ```
 
-4. Acesse a URL mostrada no terminal, geralmente:
+5. Acesse a URL mostrada no terminal, geralmente:
 
    ```text
    http://localhost:5173
@@ -55,7 +66,7 @@ Ao abrir a aplicação, você entra na tela de login.
 
 - Use a opção de login para entrar com uma conta cadastrada;
 - Se ainda não tiver conta, acesse a tela de cadastro;
-- A autenticação foi pensada para ser "pronta para backend", mas por enquanto funciona com dados simulados locais.
+- A autenticação usa Supabase Auth (e-mail e senha). Publicações, curtidas, comentários, favoritos, inscrições e conexões ficam no banco Supabase, por conta. Os perfis, projetos, eventos e posts iniciais são dados de exemplo (`is_sample`), não pessoas ou instituições reais.
 
 ### 2. Feed acadêmico
 

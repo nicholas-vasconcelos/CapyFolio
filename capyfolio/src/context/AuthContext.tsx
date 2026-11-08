@@ -1,82 +1,103 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
+import type { Session } from '@supabase/supabase-js';
 import type { User } from '../types';
-import { authService } from '../services/authService';
+import { supabase } from '../lib/supabase';
+import { authService, type RegisterInput, type RegisterResult } from '../services/authService';
+import { CapyWordmark } from '../components/CapyWordmark';
 
 type AuthContextType = {
   currentUser: User | null;
   isAuthenticated: boolean;
+  /** True while Supabase is handling a password-recovery link. */
+  isPasswordRecovery: boolean;
   login: (email: string, password: string) => Promise<User | null>;
-  register: (data: {
-    name: string;
-    email: string;
-    password: string;
-    institution: string;
-    course: string;
-    period: string;
-    focus: string;
-    tags: string[];
-    bio: string;
-  }) => Promise<User>;
+  register: (data: RegisterInput) => Promise<RegisterResult>;
   logout: () => Promise<void>;
+  /** Mirrors a saved change to the signed-in profile without another round trip. */
+  setCurrentUser: (user: User) => void;
+  clearPasswordRecovery: () => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUserState] = useState<User | null>(null);
   const [isReady, setIsReady] = useState(false);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
 
   useEffect(() => {
-    const hydrate = async () => {
-      const sessionUser = await authService.getCurrentUser();
-      setCurrentUser(sessionUser);
-      setIsReady(true);
+    let active = true;
+
+    const load = async (session: Session | null) => {
+      try {
+        const user = session ? await authService.profileFor(session.user) : null;
+        if (active) setCurrentUserState(user);
+      } catch {
+        if (active) setCurrentUserState(null);
+      } finally {
+        if (active) setIsReady(true);
+      }
     };
 
-    hydrate();
+    // Fires INITIAL_SESSION right away, then on every sign-in/out. Supabase calls must not be awaited inside
+    // the callback itself, so the profile load is deferred.
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') setIsPasswordRecovery(true);
+      if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') return;
+      window.setTimeout(() => load(session), 0);
+    });
+
+    return () => {
+      active = false;
+      data.subscription.unsubscribe();
+    };
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string) => {
     const user = await authService.login(email, password);
-    setCurrentUser(user);
+    setCurrentUserState(user);
     return user;
-  };
+  }, []);
 
-  const register = async (data: {
-    name: string;
-    email: string;
-    password: string;
-    institution: string;
-    course: string;
-    period: string;
-    focus: string;
-    tags: string[];
-    bio: string;
-  }) => {
-    const user = await authService.register(data);
-    setCurrentUser(user);
-    return user;
-  };
+  const register = useCallback(async (data: RegisterInput) => {
+    const result = await authService.register(data);
+    if (result.status === 'signed_in') setCurrentUserState(result.user);
+    return result;
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     await authService.logout();
-    setCurrentUser(null);
-  };
+    setCurrentUserState(null);
+  }, []);
+
+  const setCurrentUser = useCallback((user: User) => {
+    setCurrentUserState((previous) => (previous && previous.id === user.id ? { ...user, email: user.email ?? previous.email } : previous));
+  }, []);
+
+  const clearPasswordRecovery = useCallback(() => setIsPasswordRecovery(false), []);
 
   const value = useMemo<AuthContextType>(
     () => ({
       currentUser,
       isAuthenticated: Boolean(currentUser),
+      isPasswordRecovery,
       login,
       register,
       logout,
+      setCurrentUser,
+      clearPasswordRecovery,
     }),
-    [currentUser],
+    [currentUser, isPasswordRecovery, login, register, logout, setCurrentUser, clearPasswordRecovery],
   );
 
   if (!isReady) {
-    return null;
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-paper" role="status" aria-live="polite">
+        <CapyWordmark size="lg" />
+        <span className="text-[15px] font-semibold text-ink-muted">Carregando…</span>
+      </div>
+    );
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

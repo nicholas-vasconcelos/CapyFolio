@@ -1,34 +1,20 @@
+import { supabase } from '../lib/supabase';
 import type { Event } from '../types';
-import eventsData from '../data/events.json';
+import { check } from './errors';
+import { toEvent } from './mappers';
 
-const STORAGE_KEY = 'capyfolio_events';
-
-const readEvents = async (): Promise<Event[]> => {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (raw) {
-    return JSON.parse(raw) as Event[];
-  }
-  const seeded = eventsData as Event[];
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
-  return seeded;
-};
-
+/** Events are read-only for clients (no write policies). */
 export const eventService = {
   async list(): Promise<Event[]> {
-    return readEvents();
+    const rows = check(
+      await supabase.from('events_view').select('*').order('starts_at', { ascending: true, nullsFirst: false }),
+      'eventService.list',
+    );
+    return rows.map(toEvent);
   },
 
   async getById(id: string): Promise<Event | undefined> {
-    const events = await readEvents();
-    return events.find((event) => event.id === id);
-  },
-
-  async update(event: Event): Promise<Event> {
-    const events = await readEvents();
-    const idx = events.findIndex((entry) => entry.id === event.id);
-    if (idx === -1) return event;
-    events[idx] = event;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(events));
-    return event;
+    const row = check(await supabase.from('events_view').select('*').eq('id', id).maybeSingle(), 'eventService.getById');
+    return row ? toEvent(row) : undefined;
   },
 };

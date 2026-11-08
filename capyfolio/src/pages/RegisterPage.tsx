@@ -1,45 +1,161 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { FormEvent, ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Check, Eye, EyeOff, ImageUp, MailCheck, Palette, Trash2 } from 'lucide-react';
 import { CapyWordmark } from '../components/CapyWordmark';
+import { TagPicker } from '../components/TagPicker';
+import { nextDefaultAvatar, randomDefaultAvatar } from '../lib/defaultAvatars';
+import { IMAGE_MIME_TYPES, validateImage } from '../lib/imageRules';
 
-export function RegisterPage({ onRegister }: { onRegister: (data: { name: string; email: string; password: string; confirmPassword: string; institution: string; course: string; period: string; focus: string; tags: string[]; bio: string; }) => Promise<string | null> }) {
+type RegisterData = {
+  name: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  institution: string;
+  course: string;
+  period: string;
+  focus: string;
+  tags: string[];
+  bio: string;
+  defaultAvatarUrl: string;
+  photo: File | null;
+};
+
+const STEPS = [
+  { label: 'Acesso', title: 'Crie seu acesso', lead: 'Comece com seu nome, e-mail e uma senha.' },
+  { label: 'Formação', title: 'Onde você estuda', lead: 'Conte sua instituição e seu curso para aparecer nas buscas certas.' },
+  { label: 'Competências', title: 'Suas competências', lead: 'Escolha as mais comuns no seu curso ou busque qualquer outra. Você pode mudar depois.' },
+  { label: 'Perfil', title: 'Foto e resumo', lead: 'Escolha uma foto e escreva um resumo curto. As duas etapas são opcionais.' },
+] as const;
+
+const PERIODS = [...Array.from({ length: 12 }, (_, index) => `${index + 1}º Período`), 'Pós-graduação', 'Formado(a)'];
+const BIO_MAX = 600;
+
+function FieldError({ message }: { message?: string }) {
+  if (!message) return null;
+  return (
+    <span className="flex items-center gap-1.5 text-sm font-semibold text-ink">
+      <AlertCircle className="h-4 w-4 flex-none" aria-hidden="true" />
+      {message}
+    </span>
+  );
+}
+
+function Field({ id, label, optional, error, children }: { id: string; label: string; optional?: boolean; error?: string; children: ReactNode }) {
+  return (
+    <div className="cf-field">
+      <label htmlFor={id}>
+        {label}
+        {optional && <span className="ml-1.5 font-semibold text-ink-muted">(opcional)</span>}
+      </label>
+      {children}
+      <FieldError message={error} />
+    </div>
+  );
+}
+
+/** Step indicator: done steps in green with a check, the current one in gold. */
+function Stepper({ current }: { current: number }) {
+  return (
+    <ol className="m-0 grid list-none grid-cols-4 gap-2 p-0" aria-label="Etapas do cadastro">
+      {STEPS.map((step, index) => {
+        const done = index < current;
+        const active = index === current;
+        return (
+          <li key={step.label} aria-current={active ? 'step' : undefined} className="flex min-w-0 flex-col items-center gap-2 text-center">
+            <span
+              className={`flex h-10 w-10 items-center justify-center rounded-full border-2 border-ink font-display text-[17px] font-bold ${
+                done ? 'bg-brand-green text-surface' : active ? 'bg-gold text-ink shadow-xs' : 'bg-surface text-ink-muted'
+              }`}
+            >
+              {done ? <Check className="h-5 w-5" aria-hidden="true" /> : index + 1}
+            </span>
+            {/* On phones only the current label shows (the others would collide); all stay readable to screen readers. */}
+            <span className={`max-w-full truncate text-[13px] font-semibold sm:text-sm ${active ? 'text-ink' : 'sr-only text-ink-muted sm:not-sr-only'}`}>
+              {step.label}
+              {done && <span className="sr-only"> (concluída)</span>}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+/** `onRegister` resolves to null when signed in, `'confirm_email'` when confirmation is pending, otherwise an error message. */
+export function RegisterPage({ onRegister }: { onRegister: (data: RegisterData) => Promise<string | null> }) {
   const navigate = useNavigate();
+  const [step, setStep] = useState(0);
   const [form, setForm] = useState({
     name: '',
     email: '',
     password: '',
     confirmPassword: '',
-    institution: 'Universidade Federal Fluminense (UFF)',
-    course: 'Ciência da Computação',
-    period: '6º Período',
-    focus: 'Dados e Análise',
-    tagsInput: 'Python, GeoPandas, PostgreSQL',
+    institution: '',
+    course: '',
+    period: '',
+    focus: '',
     bio: '',
   });
+  const [tags, setTags] = useState<string[]>([]);
+  const [defaultAvatarUrl, setDefaultAvatarUrl] = useState(() => randomDefaultAvatar());
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  /** Set when the account was created but email confirmation is required before signing in. */
+  const [confirmation, setConfirmation] = useState<{ email: string; hadPhoto: boolean } | null>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const firstRender = useRef(true);
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const nextErrors: Record<string, string> = {};
+  const photoPreview = useMemo(() => (photo ? URL.createObjectURL(photo) : null), [photo]);
+  useEffect(() => () => {
+    if (photoPreview) URL.revokeObjectURL(photoPreview);
+  }, [photoPreview]);
 
-    if (!form.name.trim()) nextErrors.name = 'Informe seu nome completo.';
-    if (!form.email.trim()) nextErrors.email = 'Informe seu e-mail.';
-    if (!form.password) nextErrors.password = 'Informe uma senha.';
-    if (form.password.length < 8) nextErrors.password = 'A senha deve ter pelo menos 8 caracteres.';
-    if (form.password !== form.confirmPassword) nextErrors.confirmPassword = 'As senhas não conferem.';
-    if (!form.institution.trim()) nextErrors.institution = 'Informe a instituição.';
-    if (!form.course.trim()) nextErrors.course = 'Informe o curso.';
-    if (!form.period.trim()) nextErrors.period = 'Informe o período.';
-
-    if (Object.keys(nextErrors).length > 0) {
-      setErrors(nextErrors);
+  // Move focus to the new step's heading so screen readers announce it (not on first load).
+  useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false;
       return;
     }
+    headingRef.current?.focus();
+  }, [step]);
 
-    const tags = form.tagsInput.split(',').map((tag) => tag.trim()).filter(Boolean);
-    setErrors({});
+  const set = (key: keyof typeof form) => (value: string) => setForm((current) => ({ ...current, [key]: value }));
+
+  const validate = (index: number): Record<string, string> => {
+    const next: Record<string, string> = {};
+    if (index === 0) {
+      if (!form.name.trim()) next.name = 'Informe seu nome completo.';
+      if (!form.email.trim()) next.email = 'Informe seu e-mail.';
+      else if (!/^\S+@\S+\.\S+$/.test(form.email.trim())) next.email = 'Informe um e-mail válido.';
+      if (form.password.length < 8) next.password = 'A senha deve ter pelo menos 8 caracteres.';
+      if (form.password !== form.confirmPassword) next.confirmPassword = 'As senhas não conferem.';
+    }
+    if (index === 1) {
+      if (!form.institution.trim()) next.institution = 'Informe a instituição.';
+      if (!form.course.trim()) next.course = 'Informe o curso.';
+      if (!form.period) next.period = 'Selecione o período.';
+    }
+    return next;
+  };
+
+  const choosePhoto = (file: File | undefined) => {
+    if (!file) return;
+    try {
+      validateImage(file);
+      setPhoto(file);
+      setErrors((current) => ({ ...current, photo: '' }));
+    } catch (cause) {
+      setErrors((current) => ({ ...current, photo: cause instanceof Error ? cause.message : 'Imagem inválida.' }));
+    }
+    if (fileRef.current) fileRef.current.value = '';
+  };
+
+  const submit = async () => {
     setIsSubmitting(true);
     const result = await onRegister({
       name: form.name.trim(),
@@ -48,92 +164,203 @@ export function RegisterPage({ onRegister }: { onRegister: (data: { name: string
       confirmPassword: form.confirmPassword,
       institution: form.institution.trim(),
       course: form.course.trim(),
-      period: form.period.trim(),
+      period: form.period,
       focus: form.focus.trim(),
       tags,
       bio: form.bio.trim(),
+      defaultAvatarUrl,
+      photo,
     });
     setIsSubmitting(false);
 
-    if (result) {
-      setErrors({ email: result });
+    if (result === 'confirm_email') {
+      setConfirmation({ email: form.email.trim(), hadPhoto: Boolean(photo) });
       return;
     }
-
+    if (result) {
+      // Email problems belong to the first step; anything else stays here.
+      if (/e-mail/i.test(result)) {
+        setErrors({ email: result });
+        setStep(0);
+      } else {
+        setErrors({ form: result });
+      }
+      return;
+    }
     navigate('/perfil', { replace: true });
   };
 
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const nextErrors = validate(step);
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
+    if (step < STEPS.length - 1) setStep(step + 1);
+    else void submit();
+  };
+
+  if (confirmation) {
+    return (
+      <div className="mx-auto max-w-6xl px-6 py-12">
+        <div className="mb-8"><CapyWordmark showMascot size="lg" /></div>
+        <div className="cf-card green mx-auto block max-w-2xl p-6 sm:p-10" role="status">
+          <MailCheck className="h-8 w-8 text-navy" aria-hidden="true" />
+          <h1 className="mt-4 font-display text-[34px] font-extrabold leading-[1.05] tracking-[-0.025em] text-navy">Confirme seu e-mail</h1>
+          <div className="mt-3 text-base leading-[1.5] text-ink">
+            Enviamos um link de confirmação para <strong>{confirmation.email}</strong>. Abra o e-mail e confirme sua conta para entrar no CapyFolio.
+          </div>
+          {confirmation.hadPhoto && (
+            <div className="mt-2 text-base leading-[1.5] text-ink">
+              Sua foto será enviada depois: ao entrar, use "Personalizar perfil" para adicioná-la.
+            </div>
+          )}
+          <div className="mt-2 text-[15px] leading-[1.5] text-ink-muted">Não encontrou? Confira a caixa de spam ou promoções.</div>
+          <div className="mt-8 border-t-2 border-line pt-6">
+            <Link to="/login" className="cf-btn primary">Ir para o login</Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const current = STEPS[step];
+  const isLast = step === STEPS.length - 1;
+
   return (
-    <div className="max-w-6xl mx-auto px-6 py-12">
+    <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-12">
       <div className="mb-8"><CapyWordmark showMascot size="lg" /></div>
-      <div className="cf-card green block mx-auto max-w-2xl p-6 sm:p-10">
-        <h1 className="font-display text-[34px] font-extrabold leading-[1.05] tracking-[-0.025em] text-navy">Criar sua conta acadêmica</h1>
-        <div className="mt-2 mb-8 text-base leading-[1.5] text-ink-muted">Configure seu perfil universitário para publicar pesquisas e se conectar com estudantes.</div>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-[18px]">
-          <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2">
-            <div className="cf-field">
-              <label htmlFor="cadastro-name">Nome completo</label>
-              <input id="cadastro-name" type="text" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} className="cf-input" placeholder="Ex: Gabriel Costa" />
-              {errors.name && <span className="flex items-center gap-1.5 text-sm font-semibold text-ink"><AlertCircle className="h-4 w-4 flex-none" aria-hidden="true" />{errors.name}</span>}
-            </div>
-            <div className="cf-field">
-              <label htmlFor="cadastro-email">E-mail institucional</label>
-              <input id="cadastro-email" type="email" value={form.email} onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))} className="cf-input" placeholder="seu@id.uff.br" />
-              {errors.email && <span className="flex items-center gap-1.5 text-sm font-semibold text-ink"><AlertCircle className="h-4 w-4 flex-none" aria-hidden="true" />{errors.email}</span>}
-            </div>
-          </div>
+      <div className="cf-card green mx-auto block max-w-2xl p-6 sm:p-10">
+        <Stepper current={step} />
 
-          <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2">
-            <div className="cf-field">
-              <label htmlFor="cadastro-password">Senha</label>
-              <input id="cadastro-password" type="password" value={form.password} onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))} className="cf-input" placeholder="Mínimo 8 caracteres" />
-              {errors.password && <span className="flex items-center gap-1.5 text-sm font-semibold text-ink"><AlertCircle className="h-4 w-4 flex-none" aria-hidden="true" />{errors.password}</span>}
-            </div>
-            <div className="cf-field">
-              <label htmlFor="cadastro-confirmPassword">Confirmar senha</label>
-              <input id="cadastro-confirmPassword" type="password" value={form.confirmPassword} onChange={(event) => setForm((current) => ({ ...current, confirmPassword: event.target.value }))} className="cf-input" placeholder="Confirme sua senha" />
-              {errors.confirmPassword && <span className="flex items-center gap-1.5 text-sm font-semibold text-ink"><AlertCircle className="h-4 w-4 flex-none" aria-hidden="true" />{errors.confirmPassword}</span>}
-            </div>
-          </div>
+        {/* divs, not p: .cf-card p resets margins and colour. */}
+        <div className="mb-8 mt-8 flex flex-col gap-1.5">
+          <div className="text-[15px] font-semibold text-green-ink">Passo {step + 1} de {STEPS.length}</div>
+          <h1 ref={headingRef} tabIndex={-1} className="m-0 font-display text-[34px] font-extrabold leading-[1.05] tracking-[-0.025em] text-navy outline-none">
+            {current.title}
+          </h1>
+          <div className="text-base leading-[1.5] text-ink-muted">{current.lead}</div>
+        </div>
 
-          <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2">
-            <div className="cf-field">
-              <label htmlFor="cadastro-institution">Instituição de Ensino</label>
-              <input id="cadastro-institution" type="text" value={form.institution} onChange={(event) => setForm((current) => ({ ...current, institution: event.target.value }))} className="cf-input" />
-              {errors.institution && <span className="flex items-center gap-1.5 text-sm font-semibold text-ink"><AlertCircle className="h-4 w-4 flex-none" aria-hidden="true" />{errors.institution}</span>}
-            </div>
-            <div className="cf-field">
-              <label htmlFor="cadastro-course">Curso</label>
-              <input id="cadastro-course" type="text" value={form.course} onChange={(event) => setForm((current) => ({ ...current, course: event.target.value }))} className="cf-input" />
-              {errors.course && <span className="flex items-center gap-1.5 text-sm font-semibold text-ink"><AlertCircle className="h-4 w-4 flex-none" aria-hidden="true" />{errors.course}</span>}
-            </div>
-          </div>
+        <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-[18px]">
+          {step === 0 && (
+            <>
+              <Field id="cadastro-name" label="Nome completo" error={errors.name}>
+                <input id="cadastro-name" type="text" autoComplete="name" value={form.name} onChange={(event) => set('name')(event.target.value)} className="cf-input" placeholder="Como você quer ser chamado(a)" />
+              </Field>
+              <Field id="cadastro-email" label="E-mail institucional" error={errors.email}>
+                <input id="cadastro-email" type="email" autoComplete="email" value={form.email} onChange={(event) => set('email')(event.target.value)} className="cf-input" placeholder="seu@universidade.br" />
+              </Field>
+              <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2">
+                <Field id="cadastro-password" label="Senha" error={errors.password}>
+                  <div className="relative">
+                    <input id="cadastro-password" type={showPassword ? 'text' : 'password'} autoComplete="new-password" value={form.password} onChange={(event) => set('password')(event.target.value)} className="cf-input pr-[52px]" placeholder="Mínimo 8 caracteres" />
+                    <button type="button" aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'} aria-pressed={showPassword} onClick={() => setShowPassword((value) => !value)} className="absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-sm text-ink-muted hover:text-ink">
+                      {showPassword ? <EyeOff className="h-5 w-5" aria-hidden="true" /> : <Eye className="h-5 w-5" aria-hidden="true" />}
+                    </button>
+                  </div>
+                </Field>
+                <Field id="cadastro-confirmPassword" label="Confirmar senha" error={errors.confirmPassword}>
+                  <input id="cadastro-confirmPassword" type={showPassword ? 'text' : 'password'} autoComplete="new-password" value={form.confirmPassword} onChange={(event) => set('confirmPassword')(event.target.value)} className="cf-input" placeholder="Repita a senha" />
+                </Field>
+              </div>
+            </>
+          )}
 
-          <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2">
-            <div className="cf-field">
-              <label htmlFor="cadastro-period">Período</label>
-              <input id="cadastro-period" type="text" value={form.period} onChange={(event) => setForm((current) => ({ ...current, period: event.target.value }))} className="cf-input" />
-              {errors.period && <span className="flex items-center gap-1.5 text-sm font-semibold text-ink"><AlertCircle className="h-4 w-4 flex-none" aria-hidden="true" />{errors.period}</span>}
+          {step === 1 && (
+            <>
+              <Field id="cadastro-institution" label="Instituição de ensino" error={errors.institution}>
+                <input id="cadastro-institution" type="text" autoComplete="organization" value={form.institution} onChange={(event) => set('institution')(event.target.value)} className="cf-input" placeholder="Nome da universidade e a sigla, ex.: (UFF)" />
+              </Field>
+              <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2">
+                <Field id="cadastro-course" label="Curso" error={errors.course}>
+                  <input id="cadastro-course" type="text" value={form.course} onChange={(event) => set('course')(event.target.value)} className="cf-input" placeholder="Seu curso de graduação" />
+                </Field>
+                <Field id="cadastro-period" label="Período" error={errors.period}>
+                  <select id="cadastro-period" value={form.period} onChange={(event) => set('period')(event.target.value)} className={`cf-input ${form.period ? '' : 'text-placeholder'}`}>
+                    <option value="" disabled>Selecione</option>
+                    {PERIODS.map((period) => <option key={period} value={period} className="text-ink">{period}</option>)}
+                  </select>
+                </Field>
+              </div>
+              <Field id="cadastro-focus" label="Área de foco" optional>
+                <input id="cadastro-focus" type="text" value={form.focus} onChange={(event) => set('focus')(event.target.value)} className="cf-input" placeholder="O que você mais estuda ou constrói" />
+              </Field>
+            </>
+          )}
+
+          {step === 2 && <TagPicker id="cadastro-tags" label="Buscar outras competências" value={tags} onChange={setTags} course={form.course} />}
+
+          {step === 3 && (
+            <>
+              <div className="cf-field">
+                <span className="font-sans text-[15px] font-bold" id="cadastro-photo-label">Foto do perfil <span className="ml-1 font-semibold text-ink-muted">(opcional)</span></span>
+                <div className="flex flex-wrap items-center gap-6">
+                  <img
+                    src={photoPreview ?? defaultAvatarUrl}
+                    alt={photo ? 'Prévia da sua foto' : 'Avatar padrão'}
+                    className="h-32 w-32 flex-none rounded-3xl border-2 border-ink object-cover shadow-md sm:h-36 sm:w-36"
+                  />
+                  <div className="flex min-w-0 flex-col items-start gap-3">
+                    <input
+                      ref={fileRef}
+                      type="file"
+                      accept={IMAGE_MIME_TYPES.join(',')}
+                      className="sr-only"
+                      id="cadastro-photo"
+                      aria-labelledby="cadastro-photo-label"
+                      onChange={(event) => choosePhoto(event.target.files?.[0])}
+                    />
+                    <button type="button" onClick={() => fileRef.current?.click()} className="cf-btn">
+                      <ImageUp className="h-5 w-5" aria-hidden="true" />
+                      {photo ? 'Trocar foto' : 'Enviar foto'}
+                    </button>
+                    {photo ? (
+                      <button type="button" onClick={() => setPhoto(null)} className="cf-link inline-flex min-h-[44px] items-center gap-2 text-[15px]">
+                        <Trash2 className="h-4 w-4" aria-hidden="true" />
+                        Usar avatar padrão
+                      </button>
+                    ) : (
+                      <button type="button" onClick={() => setDefaultAvatarUrl((url) => nextDefaultAvatar(url))} className="cf-link inline-flex min-h-[44px] items-center gap-2 text-[15px]">
+                        <Palette className="h-4 w-4" aria-hidden="true" />
+                        Trocar cor do avatar
+                      </button>
+                    )}
+                    <span className="text-sm text-ink-muted">PNG, JPEG ou WebP, até 5 MB.</span>
+                  </div>
+                </div>
+                <FieldError message={errors.photo} />
+              </div>
+
+              <Field id="cadastro-bio" label="Resumo acadêmico" optional>
+                <textarea
+                  id="cadastro-bio"
+                  rows={4}
+                  maxLength={BIO_MAX}
+                  value={form.bio}
+                  onChange={(event) => set('bio')(event.target.value)}
+                  placeholder="Suas linhas de pesquisa, interesses e o que você procura."
+                  className="cf-input h-auto py-3"
+                />
+                <span className="self-end text-sm text-ink-muted [font-variant-numeric:tabular-nums]">{form.bio.length}/{BIO_MAX}</span>
+              </Field>
+            </>
+          )}
+
+          {errors.form && (
+            <div role="alert">
+              <FieldError message={errors.form} />
             </div>
-            <div className="cf-field">
-              <label htmlFor="cadastro-focus">Área / Foco de Atuação</label>
-              <input id="cadastro-focus" type="text" value={form.focus} onChange={(event) => setForm((current) => ({ ...current, focus: event.target.value }))} className="cf-input" />
-            </div>
-          </div>
+          )}
 
-          <div className="cf-field">
-            <label htmlFor="cadastro-tagsInput">Tags (separadas por vírgula)</label>
-            <input id="cadastro-tagsInput" type="text" value={form.tagsInput} onChange={(event) => setForm((current) => ({ ...current, tagsInput: event.target.value }))} className="cf-input" />
-          </div>
-
-          <div className="cf-field">
-            <label htmlFor="cadastro-bio">Resumo acadêmico</label>
-            <textarea id="cadastro-bio" rows={3} value={form.bio} onChange={(event) => setForm((current) => ({ ...current, bio: event.target.value }))} placeholder="Fale brevemente sobre suas linhas de pesquisa e interesses..." className="cf-input h-auto py-3" />
-          </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t-2 border-line pt-6">
-            <Link to="/login" className="cf-btn">Voltar para Login</Link>
-            <button type="submit" disabled={isSubmitting} className="cf-btn primary disabled:opacity-70">{isSubmitting ? 'Criando...' : 'Criar conta'}</button>
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-3 border-t-2 border-line pt-6">
+            {step === 0 ? (
+              <Link to="/login" className="cf-btn">Voltar para o login</Link>
+            ) : (
+              <button type="button" onClick={() => { setErrors({}); setStep(step - 1); }} className="cf-btn">Voltar</button>
+            )}
+            <button type="submit" disabled={isSubmitting} className="cf-btn primary disabled:opacity-70">
+              {isLast ? (isSubmitting ? 'Criando conta...' : 'Criar conta') : 'Continuar'}
+            </button>
           </div>
         </form>
       </div>

@@ -11,6 +11,8 @@ import { useLayoutEditor } from './useLayoutEditor';
 import { WidgetCatalog } from './WidgetCatalog';
 import { WidgetControls } from './WidgetControls';
 import { t } from '../../../i18n';
+import { uploadImage } from '../../../lib/storage';
+import { randomDefaultAvatar } from '../../../lib/defaultAvatars';
 
 const LEAVE_MESSAGE = t.editor.confirmLeave;
 
@@ -103,6 +105,41 @@ export function ProfileEditor({ user, projects, initialLayout, onUpdateUser, onO
 
   const editing = !previewing;
 
+  // The photo is part of the fixed profile, so it saves right away instead of waiting for "Salvar".
+  // onUpdateUser rolls back and shows its own toast on failure; rethrowing lets the controls show the error too.
+  const changePhoto = async (file: File) => {
+    let url: string;
+    try {
+      url = await uploadImage('avatars', file);
+    } catch (cause) {
+      throw new Error(cause instanceof Error && cause.message ? cause.message : t.profile.photo.failed);
+    }
+    await savePhoto(url);
+  };
+
+  const resetToDefaultPhoto = () => savePhoto(randomDefaultAvatar());
+
+  // Specialties are part of the fixed profile too, so they save on their own button, not with the layout.
+  const changeTags = async (tags: string[]) => {
+    try {
+      await onUpdateUser({ ...user, tags });
+    } catch {
+      throw new Error(t.profile.tags.failed);
+    }
+    announce(t.profile.tags.saved);
+    showToast(t.profile.tags.saved);
+  };
+
+  const savePhoto = async (avatar: string) => {
+    try {
+      await onUpdateUser({ ...user, avatar });
+    } catch {
+      throw new Error(t.profile.photo.failed);
+    }
+    announce(t.profile.photo.saved);
+    showToast(t.profile.photo.saved);
+  };
+
   return (
     // Bottom padding keeps the last widgets clear of the fixed edit bar.
     <div className="min-h-screen bg-paper pb-44 text-ink sm:pb-24">
@@ -118,6 +155,9 @@ export function ProfileEditor({ user, projects, initialLayout, onUpdateUser, onO
         isEditing
         showLock={editing}
         onToggleEditing={exit}
+        onChangePhoto={editing ? changePhoto : undefined}
+        onUseDefaultPhoto={editing ? resetToDefaultPhoto : undefined}
+        onChangeTags={editing ? changeTags : undefined}
         heroSlot={
           <HeroSlot
             layout={draft}

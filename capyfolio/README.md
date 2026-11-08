@@ -37,7 +37,7 @@ O perfil (`/perfil`, `/perfil/:id`) tem uma parte fixa (foto, nome, foco, instit
 
 ### Como o layout é salvo
 
-- O layout fica no próprio usuário, em `User.profileLayout` (`{ version: 1, hero, widgets }`, tipos em `src/types/index.ts`), e é gravado com `userService.update` (localStorage `capyfolio_users`).
+- O layout fica no próprio usuário, em `User.profileLayout` (`{ version: 1, hero, widgets }`, tipos em `src/types/index.ts`), e é gravado com `userService.update` na coluna `profiles.profile_layout` (jsonb) do Supabase.
 - Sem layout salvo, a página usa `defaultLayout`: projeto fixado, Links, Selos (se houver) e a galeria de projetos.
 - Todo layout lido passa por `sanitizeLayout` (`src/widgets/layout.ts`), que descarta tipos desconhecidos e widgets cujos dados sumiram, corrige tamanhos e cores fora da paleta e limita o grid a 12 widgets e a 2 widgets azul-marinho. Dados quebrados nunca derrubam a página.
 - Ao salvar, `featuredProjectId` é sincronizado com o primeiro "Projeto fixado" do layout, para o resto do app continuar funcionando.

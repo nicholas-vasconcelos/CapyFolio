@@ -23,6 +23,23 @@ export const ptBR = {
     periodPlaceholder: '[Período]',
     skillsPlaceholder: '[Competências]',
     bioFallback: 'Estudante com foco em projetos práticos, inovação e desenvolvimento de soluções digitais com impacto profissional real.',
+    photo: {
+      change: 'Trocar foto',
+      useDefault: 'Usar avatar padrão',
+      uploading: 'Enviando foto...',
+      hint: 'PNG, JPEG ou WebP, até 5 MB. A foto é salva na hora.',
+      saved: 'Foto do perfil atualizada.',
+      failed: 'Não foi possível enviar a foto. Tente novamente.',
+    },
+    tags: {
+      edit: 'Editar especialidades',
+      search: 'Buscar outras competências',
+      save: 'Salvar especialidades',
+      cancel: 'Cancelar',
+      saving: 'Salvando...',
+      saved: 'Especialidades atualizadas.',
+      failed: 'Não foi possível salvar as especialidades. Tente novamente.',
+    },
   },
 
   widgets: {

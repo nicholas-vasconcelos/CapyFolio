@@ -1,26 +1,30 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { AlertCircle, Eye, EyeOff, MessageSquare, Search, Share2 } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff, MailCheck, MessageSquare, Search, Share2 } from 'lucide-react';
 import capyMascot from '../assets/capy-mascot.png';
 import { CapyWordmark } from '../components/CapyWordmark';
+import { authService } from '../services/authService';
 
-export function LoginPage({ onLogin }: { onLogin: (email: string, password: string) => Promise<boolean> }) {
+/** `onLogin` resolves to `true` when signed in, otherwise to the pt-BR error message to show. */
+export function LoginPage({ onLogin }: { onLogin: (email: string, password: string) => Promise<true | string> }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError('');
+    setNotice('');
     setIsSubmitting(true);
-    const ok = await onLogin(email.trim(), password);
+    const result = await onLogin(email.trim(), password);
     setIsSubmitting(false);
-    if (!ok) {
-      setError('E-mail ou senha incorretos');
+    if (result !== true) {
+      setError(result);
       return;
     }
 
@@ -29,7 +33,25 @@ export function LoginPage({ onLogin }: { onLogin: (email: string, password: stri
   };
 
   const handleUnavailable = () => {
+    setNotice('');
     setError('Funcionalidade ainda não disponível.');
+  };
+
+  const handleForgotPassword = async () => {
+    setError('');
+    setNotice('');
+    const address = email.trim();
+    if (!address) {
+      setError('Informe seu e-mail acima para receber o link de redefinição de senha.');
+      return;
+    }
+    try {
+      await authService.requestPasswordReset(address);
+      setNotice('Se houver uma conta com esse e-mail, enviamos um link para redefinir a senha.');
+    } catch (cause) {
+      console.error(cause);
+      setError('Não foi possível enviar o link agora. Tente novamente em alguns minutos.');
+    }
   };
 
   return (
@@ -116,12 +138,19 @@ export function LoginPage({ onLogin }: { onLogin: (email: string, password: stri
                 </div>
               )}
 
+              {notice && (
+                <div role="status" className="flex items-start gap-2 text-[15px] font-semibold text-ink">
+                  <MailCheck className="mt-0.5 h-[18px] w-[18px] flex-none" aria-hidden="true" />
+                  {notice}
+                </div>
+              )}
+
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <label className="cf-check text-[15px]">
                   <input type="checkbox" />
                   Lembrar de mim
                 </label>
-                <button type="button" onClick={handleUnavailable} className="cf-link text-[15px] hover:underline">Esqueceu sua senha?</button>
+                <button type="button" onClick={handleForgotPassword} className="cf-link text-[15px] hover:underline">Esqueceu sua senha?</button>
               </div>
 
               <button type="submit" disabled={isSubmitting} className="cf-btn primary lg w-full disabled:opacity-70">

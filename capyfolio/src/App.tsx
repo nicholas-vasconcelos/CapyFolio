@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+﻿import { useMemo, useState } from 'react';
 import { BrowserRouter, Link, Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom';
 import { ArrowUpRight, CheckCircle2, Search } from 'lucide-react';
 
@@ -17,36 +17,46 @@ import { Avatar } from './components/Avatar';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { ProfilePage } from './pages/profile/ProfilePage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { postService } from './services/postService';
 import { projectService } from './services/projectService';
 import { userService } from './services/userService';
+import { connectionService, favoriteService, registrationService } from './services/membershipServices';
 import type { Event, Post, Project, User } from './types';
 
+const SAVE_ERROR_MESSAGE = 'Não foi possível salvar. Tente novamente.';
+
+/** Adds or removes `id` from a list without duplicates. */
+const toggleId = (ids: string[], id: string, on: boolean) => (on ? (ids.includes(id) ? ids : [...ids, id]) : ids.filter((entry) => entry !== id));
+
 function AppShell() {
-  const { currentUser, isAuthenticated, login, register, logout } = useAuth();
-  const { users, projects, events, posts, setUsers, setProjects, setPosts } = useAppData();
+  const { currentUser, isAuthenticated, isPasswordRecovery, login, register, logout, setCurrentUser } = useAuth();
+  const {
+    users, projects, events, posts, favoritedProjectIds, registeredEventIds, connectedUserIds,
+    setUsers, setProjects, setEvents, setPosts, setFavoritedProjectIds, setRegisteredEventIds, setConnectedUserIds,
+  } = useAppData();
   const { toastMessage, showToast, clearToast } = useToast();
   const navigate = useNavigate();
   const [globalSearchQuery, setGlobalSearchQuery] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [createModalDefaultTab, setCreateModalDefaultTab] = useState<'project' | 'post'>('project');
-  const [favoritedProjectIds, setFavoritedProjectIds] = useState<string[]>([]);
-  const [registeredEventIds, setRegisteredEventIds] = useState<string[]>([]);
-  const [connectedUserIds, setConnectedUserIds] = useState<string[]>([]);
 
-  useEffect(() => {
-    setFavoritedProjectIds(JSON.parse(localStorage.getItem('capyfolio_favorites') ?? '[]'));
-    setRegisteredEventIds(JSON.parse(localStorage.getItem('capyfolio_registrations') ?? '[]'));
-    setConnectedUserIds(JSON.parse(localStorage.getItem('capyfolio_connections') ?? '[]'));
-  }, []);
-
-  const handleLogin = async (email: string, password: string) => {
-    const sessionUser = await login(email, password);
-    if (!sessionUser) return false;
-    showToast(`Sessão iniciada como ${sessionUser.name}.`);
-    return true;
+  const handleLogin = async (email: string, password: string): Promise<true | string> => {
+    try {
+      const sessionUser = await login(email, password);
+      if (!sessionUser) return 'E-mail ou senha incorretos';
+      showToast(`Sessão iniciada como ${sessionUser.name}.`);
+      return true;
+    } catch (cause) {
+      if (cause instanceof Error && cause.message === 'EMAIL_NOT_CONFIRMED') {
+        return 'Confirme seu e-mail antes de entrar. Procure o link que enviamos para sua caixa de entrada.';
+      }
+      console.error(cause);
+      return 'Não foi possível entrar agora. Tente novamente.';
+    }
   };
 
+  /** `null` = signed in; `'confirm_email'` = account created, waiting for email confirmation; otherwise an error message. */
   const handleRegister = async (data: {
     name: string;
     email: string;
@@ -58,64 +68,120 @@ function AppShell() {
     focus: string;
     tags: string[];
     bio: string;
-  }) => {
+    defaultAvatarUrl: string;
+    photo: File | null;
+  }): Promise<string | null> => {
     if (data.password !== data.confirmPassword) {
       return 'As senhas não conferem.';
     }
 
     try {
-      const created = await register(data);
-      setUsers((previous) => [...previous, created]);
-      showToast('Conta institucional criada com sucesso!');
+      const { confirmPassword: _confirm, ...input } = data;
+      const result = await register(input);
+      if (result.status === 'confirm_email') return 'confirm_email';
+      showToast(
+        result.photoFailed
+          ? 'Conta criada, mas não foi possível enviar a foto. Você pode trocá-la ao personalizar o perfil.'
+          : 'Conta institucional criada com sucesso!',
+      );
       return null;
-    } catch {
+    } catch (cause) {
+      if (cause instanceof Error && cause.message === 'EMAIL_TAKEN') {
+        return 'Este e-mail já está cadastrado.';
+      }
+      console.error(cause);
       return 'Erro ao criar a conta.';
     }
   };
 
-  const persistFavoriteProjects = (next: string[]) => {
-    localStorage.setItem('capyfolio_favorites', JSON.stringify(next));
-    setFavoritedProjectIds(next);
-  };
-
-  const persistEventRegistrations = (next: string[]) => {
-    localStorage.setItem('capyfolio_registrations', JSON.stringify(next));
-    setRegisteredEventIds(next);
-  };
-
-  const persistConnections = (next: string[]) => {
-    localStorage.setItem('capyfolio_connections', JSON.stringify(next));
-    setConnectedUserIds(next);
+  /**
+   * Optimistic toggle for a per-account id list: update the UI first, write one row, roll back and toast on error.
+   * `adjust` mirrors the visible counter change on the related item.
+   */
+  const toggleMembership = async (options: {
+    id: string;
+    on: boolean;
+    setIds: (updater: (ids: string[]) => string[]) => void;
+    write: (profileId: string, id: string, on: boolean) => Promise<void>;
+    adjust: (delta: number) => void;
+    successMessage: string;
+  }) => {
+    if (!currentUser) return;
+    const { id, on, setIds, write, adjust, successMessage } = options;
+    setIds((ids) => toggleId(ids, id, on));
+    adjust(on ? 1 : -1);
+    try {
+      await write(currentUser.id, id, on);
+      showToast(successMessage);
+    } catch (cause) {
+      console.error(cause);
+      setIds((ids) => toggleId(ids, id, !on));
+      adjust(on ? -1 : 1);
+      showToast(SAVE_ERROR_MESSAGE);
+    }
   };
 
   const handleToggleFavoriteProject = (projectId: string) => {
-    const next = favoritedProjectIds.includes(projectId)
-      ? favoritedProjectIds.filter((id) => id !== projectId)
-      : [...favoritedProjectIds, projectId];
-    persistFavoriteProjects(next);
-    showToast(next.includes(projectId) ? 'Projeto salvo nos seus favoritos acadêmicos!' : 'Projeto removido dos favoritos.');
+    const on = !favoritedProjectIds.includes(projectId);
+    void toggleMembership({
+      id: projectId,
+      on,
+      setIds: setFavoritedProjectIds,
+      write: favoriteService.set,
+      adjust: (delta) =>
+        setProjects((previous) =>
+          previous.map((project) => (project.id === projectId ? { ...project, favorites: Math.max(0, (project.favorites ?? 0) + delta) } : project)),
+        ),
+      successMessage: on ? 'Projeto salvo nos seus favoritos acadêmicos!' : 'Projeto removido dos favoritos.',
+    });
   };
 
   const handleToggleEventRegistration = (eventId: string) => {
-    const next = registeredEventIds.includes(eventId)
-      ? registeredEventIds.filter((id) => id !== eventId)
-      : [...registeredEventIds, eventId];
-    persistEventRegistrations(next);
-    showToast(next.includes(eventId) ? 'Inscrição confirmada!' : 'Inscrição cancelada.');
+    const on = !registeredEventIds.includes(eventId);
+    void toggleMembership({
+      id: eventId,
+      on,
+      setIds: setRegisteredEventIds,
+      write: registrationService.set,
+      adjust: (delta) =>
+        setEvents((previous) =>
+          previous.map((event) => (event.id === eventId ? { ...event, attendeesCount: Math.max(0, event.attendeesCount + delta) } : event)),
+        ),
+      successMessage: on ? 'Inscrição confirmada!' : 'Inscrição cancelada.',
+    });
   };
 
   const handleToggleConnect = (userId: string) => {
-    const next = connectedUserIds.includes(userId)
-      ? connectedUserIds.filter((id) => id !== userId)
-      : [...connectedUserIds, userId];
-    persistConnections(next);
-    showToast(next.includes(userId) ? 'Conexão acadêmica adicionada!' : 'Conexão removida.');
+    if (!currentUser || userId === currentUser.id) return;
+    const on = !connectedUserIds.includes(userId);
+    void toggleMembership({
+      id: userId,
+      on,
+      setIds: setConnectedUserIds,
+      write: connectionService.set,
+      // Only the target's counter: the signed-in user's own count is refreshed on the next load.
+      adjust: (delta) =>
+        setUsers((previous) =>
+          previous.map((user) => (user.id === userId ? { ...user, connections: Math.max(0, (user.connections ?? 0) + delta) } : user)),
+        ),
+      successMessage: on ? 'Conexão acadêmica adicionada!' : 'Conexão removida.',
+    });
   };
 
-  /** Single place that persists a changed user and mirrors it into app state. */
+  /** Single place that persists a changed user and mirrors it into app state. Rolls back and toasts on error. */
   const handleUpdateUser = async (next: User) => {
-    setUsers((previous) => previous.map((user) => (user.id === next.id ? next : user)));
-    await userService.update(next);
+    const previous = users.find((user) => user.id === next.id) ?? currentUser;
+    setUsers((list) => list.map((user) => (user.id === next.id ? next : user)));
+    try {
+      const saved = await userService.update(next);
+      setUsers((list) => list.map((user) => (user.id === saved.id ? saved : user)));
+      setCurrentUser(saved);
+    } catch (cause) {
+      console.error(cause);
+      if (previous) setUsers((list) => list.map((user) => (user.id === previous.id ? previous : user)));
+      showToast(SAVE_ERROR_MESSAGE);
+      throw cause;
+    }
   };
 
   /** The logged-in user as stored in `users`, which is fresher than the session copy. */
@@ -124,36 +190,30 @@ function AppShell() {
   const handleSetFeaturedProject = async (projectId: string) => {
     const owner = currentUserRecord();
     if (!owner) return;
-    await handleUpdateUser({ ...owner, featuredProjectId: projectId });
-    showToast('Projeto em destaque atualizado.');
+    try {
+      await handleUpdateUser({ ...owner, featuredProjectId: projectId });
+      showToast('Projeto em destaque atualizado.');
+    } catch {
+      // handleUpdateUser already rolled back and showed a toast.
+    }
   };
 
   const handleCreatePost = async (payload: { category: string; content: string; relatedProjectId?: string | null }) => {
     if (!currentUser) return;
 
-    const created: Post = {
-      id: `post-${Date.now()}`,
-      authorId: currentUser.id,
-      authorName: currentUser.name,
-      authorRole: `${currentUser.course ?? 'Estudante'} • ${currentUser.period ?? 'Período'}`,
-      authorInstitution: currentUser.shortInstitution || currentUser.institution,
-      authorAvatar: currentUser.avatar || '',
-      isOrganization: false,
-      category: payload.category,
-      timestamp: 'Agora mesmo',
-      content: payload.content,
-      relatedProjectId: payload.relatedProjectId ?? null,
-      relatedEventId: null,
-      likes: 1,
-      likedByMe: true,
-      comments: [],
-    };
-
-    const saved = await postService.create(created);
-    setPosts((previous) => [saved, ...previous]);
-    showToast('Publicação compartilhada com a comunidade.');
-    setIsCreateModalOpen(false);
-    navigate('/feed');
+    try {
+      const saved = await postService.create(
+        { category: payload.category, content: payload.content, relatedProjectId: payload.relatedProjectId ?? null },
+        currentUser.id,
+      );
+      setPosts((previous) => [saved, ...previous]);
+      showToast('Publicação compartilhada com a comunidade.');
+      setIsCreateModalOpen(false);
+      navigate('/feed');
+    } catch (cause) {
+      console.error(cause);
+      showToast('Não foi possível publicar. Tente novamente.');
+    }
   };
 
   const handleCreateProject = async (payload: {
@@ -171,35 +231,42 @@ function AppShell() {
   }) => {
     if (!currentUser) return;
 
-    const nextProject: Project = {
-      id: `p-${Date.now()}`,
-      title: payload.title,
-      shortDescription: payload.shortDescription,
-      summary: payload.summary,
-      keyResults: payload.keyResults.length ? payload.keyResults : ['Projeto publicado com resultados iniciais relevantes.'],
-      methodology: payload.summary,
-      files: [{ name: 'relatorio_tecnico.pdf', size: '1.2 MB', type: 'Relatório PDF' }],
-      authorIds: [currentUser.id],
-      authorNames: currentUser.name,
-      institution: currentUser.institution,
-      area: payload.area,
-      type: payload.type,
-      status: payload.status,
-      date: new Date().toISOString().slice(0, 10),
-      period: payload.period,
-      tags: payload.tags,
-      url: payload.url,
-      visualType: 'standard',
-      media: 'https://images.unsplash.com/photo-1516321165247-4aa89a48be28?w=1200&auto=format&fit=crop&q=80',
-      favorites: 1,
-    };
+    let saved: Project;
+    try {
+      saved = await projectService.create(
+        {
+          title: payload.title,
+          shortDescription: payload.shortDescription,
+          summary: payload.summary,
+          keyResults: payload.keyResults,
+          methodology: payload.summary,
+          institution: currentUser.institution,
+          area: payload.area,
+          type: payload.type,
+          status: payload.status,
+          period: payload.period,
+          tags: payload.tags,
+          url: payload.url,
+        },
+        currentUser.id,
+      );
+    } catch (cause) {
+      console.error(cause);
+      showToast('Não foi possível publicar o projeto. Tente novamente.');
+      return;
+    }
 
-    const saved = await projectService.create(nextProject);
     setProjects((previous) => [saved, ...previous]);
 
     if (payload.setAsFeatured) {
       const owner = currentUserRecord();
-      if (owner) await handleUpdateUser({ ...owner, featuredProjectId: saved.id });
+      if (owner) {
+        try {
+          await handleUpdateUser({ ...owner, featuredProjectId: saved.id });
+        } catch {
+          // The project is published; only the featured flag failed, and a toast already said so.
+        }
+      }
     }
 
     showToast('Projeto publicado com sucesso!');
@@ -207,47 +274,73 @@ function AppShell() {
     navigate(`/projeto/${saved.id}`);
   };
 
+  const updatePost = (postId: string, update: (post: Post) => Post) =>
+    setPosts((previous) => previous.map((post) => (post.id === postId ? update(post) : post)));
+
   const handleToggleLikePost = async (postId: string) => {
-    const nextPosts = posts.map((post) => {
-      if (post.id !== postId) return post;
-      const liked = !post.likedByMe;
-      return {
-        ...post,
-        likedByMe: liked,
-        likes: Math.max(0, liked ? post.likes + 1 : post.likes - 1),
-      };
+    if (!currentUser) return;
+    const target = posts.find((post) => post.id === postId);
+    if (!target) return;
+    const liked = !target.likedByMe;
+    const apply = (on: boolean) => (post: Post) => ({
+      ...post,
+      likedByMe: on,
+      likes: Math.max(0, post.likes + (on ? 1 : -1)),
     });
-    setPosts(nextPosts);
-    await postService.replaceAll(nextPosts);
+
+    updatePost(postId, apply(liked));
+    try {
+      await postService.toggleLike(postId, currentUser.id, liked);
+    } catch (cause) {
+      console.error(cause);
+      updatePost(postId, apply(!liked));
+      showToast(SAVE_ERROR_MESSAGE);
+    }
   };
 
   const handleAddComment = async (postId: string, text: string) => {
-    if (!currentUser || !text.trim()) return;
-    const nextPosts = posts.map((post) => {
-      if (post.id !== postId) return post;
-      return {
-        ...post,
-        comments: [
-          ...post.comments,
-          {
-            id: `comment-${Date.now()}`,
-            authorName: currentUser.name,
-            authorInstitution: currentUser.shortInstitution || currentUser.institution,
-            text: text.trim(),
-            timestamp: 'Agora',
-          },
-        ],
-      };
-    });
+    const body = text.trim();
+    if (!currentUser || !body) return;
 
-    setPosts(nextPosts);
-    await postService.replaceAll(nextPosts);
+    const tempId = `pending-${crypto.randomUUID()}`;
+    updatePost(postId, (post) => ({
+      ...post,
+      comments: [
+        ...post.comments,
+        {
+          id: tempId,
+          authorId: currentUser.id,
+          authorName: currentUser.name,
+          authorInstitution: currentUser.shortInstitution || currentUser.institution,
+          text: body,
+          timestamp: 'Agora mesmo',
+        },
+      ],
+    }));
+
+    try {
+      const saved = await postService.addComment(postId, currentUser.id, body);
+      updatePost(postId, (post) => ({ ...post, comments: post.comments.map((comment) => (comment.id === tempId ? saved : comment)) }));
+    } catch (cause) {
+      console.error(cause);
+      updatePost(postId, (post) => ({ ...post, comments: post.comments.filter((comment) => comment.id !== tempId) }));
+      showToast('Não foi possível enviar o comentário. Tente novamente.');
+    }
   };
 
   const handleLogout = async () => {
     await logout();
     navigate('/login');
   };
+
+  if (isPasswordRecovery) {
+    return (
+      <>
+        <ResetPasswordPage />
+        <Toast message={toastMessage} onClose={clearToast} />
+      </>
+    );
+  }
 
   return (
     <>
@@ -273,6 +366,7 @@ function AppShell() {
             <Route path="/pessoas" element={<ProtectedRoute><PeoplePage users={users} connectedUserIds={connectedUserIds} onToggleConnect={handleToggleConnect} initialSearch={globalSearchQuery} /></ProtectedRoute>} />
             <Route path="/perfil" element={<ProtectedRoute><ProfilePage currentUser={currentUser} users={users} projects={projects} connectedUserIds={connectedUserIds} onToggleConnect={handleToggleConnect} onSetFeaturedProject={handleSetFeaturedProject} onUpdateUser={handleUpdateUser} onOpenNewProject={() => { setCreateModalDefaultTab('project'); setIsCreateModalOpen(true); }} /></ProtectedRoute>} />
             <Route path="/perfil/:id" element={<ProtectedRoute><ProfilePage currentUser={currentUser} users={users} projects={projects} connectedUserIds={connectedUserIds} onToggleConnect={handleToggleConnect} onSetFeaturedProject={handleSetFeaturedProject} onUpdateUser={handleUpdateUser} onOpenNewProject={() => { setCreateModalDefaultTab('project'); setIsCreateModalOpen(true); }} /></ProtectedRoute>} />
+            <Route path="/redefinir-senha" element={<ResetPasswordPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Layout>
@@ -281,6 +375,7 @@ function AppShell() {
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
           <Route path="/cadastro" element={<RegisterPage onRegister={handleRegister} />} />
+          <Route path="/redefinir-senha" element={<ResetPasswordPage />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       )}
@@ -388,7 +483,7 @@ function FeedPage({ currentUser, posts, projects, events, onOpenCreateModal, onT
                   }}
                   className="mt-5 flex flex-wrap gap-3"
                 >
-                  <input aria-label={`Responder como ${currentUser.name}`} placeholder="Responder como Arthur" className="cf-input h-12 min-w-[200px] flex-1" />
+                  <input aria-label={`Responder como ${currentUser.name}`} placeholder={`Responder como ${currentUser.name}`} className="cf-input h-12 min-w-[200px] flex-1" />
                   <button type="submit" className="cf-btn primary">
                     Enviar
                   </button>
@@ -797,11 +892,11 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppDataProvider>
-          <ToastProvider>
+        <ToastProvider>
+          <AppDataProvider>
             <AppShell />
-          </ToastProvider>
-        </AppDataProvider>
+          </AppDataProvider>
+        </ToastProvider>
       </AuthProvider>
     </BrowserRouter>
   );

@@ -13,8 +13,8 @@ export interface User {
   badges?: string[];
   avatar?: string;
   featuredProjectId?: string | null;
-  email: string;
-  password?: string;
+  /** Only set for the signed-in user (from the auth session); never exposed for other profiles. */
+  email?: string;
   github?: string;
   linkedin?: string;
   lattes?: string;
@@ -85,6 +85,7 @@ export interface Event {
 
 export interface Comment {
   id: string;
+  authorId?: string | null;
   authorName: string;
   authorInstitution: string;
   text: string;
