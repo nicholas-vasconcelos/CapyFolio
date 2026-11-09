@@ -1,6 +1,6 @@
-﻿import { useMemo, useState } from 'react';
+﻿import { useState } from 'react';
 import { BrowserRouter, Link, Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom';
-import { ArrowUpRight, Download, Search } from 'lucide-react';
+import { ArrowUpRight, Download } from 'lucide-react';
 
 import { AppDataProvider, useAppData } from './context/AppDataContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -9,11 +9,12 @@ import { Layout } from './components/Layout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Toast } from './components/Toast';
 import { CreateContentModal } from './components/CreateContentModal';
-import { EventCard } from './components/EventCard';
 import { FEED_COMMENT_LIMIT, PostCard } from './components/PostCard';
 import { PostPage } from './pages/PostPage';
-import { ProjectCard } from './components/ProjectCard';
-import { UserCard } from './components/UserCard';
+import { PeoplePage } from './pages/PeoplePage';
+import { ProjectsPage } from './pages/ProjectsPage';
+import { EventsPage } from './pages/EventsPage';
+import { SearchPage } from './pages/SearchPage';
 import { Avatar } from './components/Avatar';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
@@ -385,18 +386,24 @@ function AppShell() {
           onLogout={handleLogout}
           globalSearchQuery={globalSearchQuery}
           onSearchChange={setGlobalSearchQuery}
-          onSearchSubmit={() => navigate('/pessoas')}
+          onSearchSubmit={() => {
+            // The header search covers people, projects and events; Busca owns the text from here.
+            const query = globalSearchQuery.trim();
+            navigate(query ? `/busca?${new URLSearchParams({ q: query })}` : '/busca');
+            setGlobalSearchQuery('');
+          }}
         >
           <Routes>
             <Route path="/" element={<Navigate to="/feed" replace />} />
             <Route path="/feed" element={<ProtectedRoute><FeedPage currentUser={currentUser} posts={posts} projects={projects} events={events} users={users} onOpenCreateModal={(tab) => { if (tab === 'project') openNewProject(); else { setCreateModalDefaultTab(tab); setIsCreateModalOpen(true); } }} onToggleLike={handleToggleLikePost} onAddComment={handleAddComment} /></ProtectedRoute>} />
             <Route path="/post/:id" element={<ProtectedRoute><PostPage currentUser={currentUser} posts={posts} loading={loading} onToggleLike={handleToggleLikePost} onAddComment={handleAddComment} /></ProtectedRoute>} />
-            <Route path="/projetos" element={<ProtectedRoute><ProjectsPage projects={projects} users={users} favoritedProjectIds={favoritedProjectIds} onToggleFavorite={handleToggleFavoriteProject} /></ProtectedRoute>} />
+            <Route path="/projetos" element={<ProtectedRoute><ProjectsPage loading={loading} projects={projects} users={users} favoritedProjectIds={favoritedProjectIds} onToggleFavorite={handleToggleFavoriteProject} /></ProtectedRoute>} />
             <Route path="/projeto/novo" element={<ProtectedRoute><NewProjectPage currentUser={currentUser} onSubmit={handleCreateProject} /></ProtectedRoute>} />
             <Route path="/projeto/:id" element={<ProtectedRoute><ProjectDetailPage projects={projects} loading={loading} users={users} favoritedProjectIds={favoritedProjectIds} onToggleFavorite={handleToggleFavoriteProject} /></ProtectedRoute>} />
-            <Route path="/eventos" element={<ProtectedRoute><EventsPage events={events} registeredEventIds={registeredEventIds} onToggleRegistration={handleToggleEventRegistration} /></ProtectedRoute>} />
+            <Route path="/eventos" element={<ProtectedRoute><EventsPage loading={loading} events={events} registeredEventIds={registeredEventIds} onToggleRegistration={handleToggleEventRegistration} /></ProtectedRoute>} />
             <Route path="/evento/:id" element={<ProtectedRoute><EventDetailPage events={events} loading={loading} registeredEventIds={registeredEventIds} onToggleRegistration={handleToggleEventRegistration} /></ProtectedRoute>} />
-            <Route path="/pessoas" element={<ProtectedRoute><PeoplePage users={users} currentUserId={currentUser?.id ?? ''} connectedUserIds={connectedUserIds} onToggleConnect={handleToggleConnect} initialSearch={globalSearchQuery} /></ProtectedRoute>} />
+            <Route path="/pessoas" element={<ProtectedRoute><PeoplePage users={users} loading={loading} /></ProtectedRoute>} />
+            <Route path="/busca" element={<ProtectedRoute><SearchPage loading={loading} users={users} projects={projects} events={events} favoritedProjectIds={favoritedProjectIds} registeredEventIds={registeredEventIds} onToggleFavorite={handleToggleFavoriteProject} onToggleRegistration={handleToggleEventRegistration} /></ProtectedRoute>} />
             <Route path="/perfil" element={<ProtectedRoute><ProfilePage currentUser={currentUser} users={users} projects={projects} connectedUserIds={connectedUserIds} onToggleConnect={handleToggleConnect} onSetFeaturedProject={handleSetFeaturedProject} onUpdateUser={handleUpdateUser} onOpenNewProject={openNewProject} /></ProtectedRoute>} />
             <Route path="/perfil/:id" element={<ProtectedRoute><ProfilePage currentUser={currentUser} users={users} projects={projects} connectedUserIds={connectedUserIds} onToggleConnect={handleToggleConnect} onSetFeaturedProject={handleSetFeaturedProject} onUpdateUser={handleUpdateUser} onOpenNewProject={openNewProject} /></ProtectedRoute>} />
             <Route path="/redefinir-senha" element={<ResetPasswordPage />} />
@@ -504,42 +511,6 @@ function FeedPage({ currentUser, posts, projects, events, onOpenCreateModal, onT
             </div>
           </aside>
         </div>
-      </main>
-    </div>
-  );
-}
-
-function ProjectsPage({ projects, users, favoritedProjectIds, onToggleFavorite }: {
-  projects: Project[];
-  users: User[];
-  favoritedProjectIds: string[];
-  onToggleFavorite: (projectId: string) => void;
-}) {
-  return (
-    <div className="bg-paper">
-      <section className="capy-hero-shell">
-        <div className="mx-auto flex max-w-[1344px] flex-wrap items-end justify-between gap-6 px-4 py-10 sm:px-6 md:px-12 md:py-14">
-          <div className="flex flex-col gap-2">
-            <span className="text-[17px] font-semibold text-gold-light">Projetos</span>
-            <h1 className="max-w-[15em] font-display text-4xl font-extrabold leading-[0.98] tracking-[-0.04em] text-on-navy [text-wrap:balance] md:text-[56px] lg:text-[68px]">Explorar pesquisas e projetos</h1>
-          </div>
-          <span className="cf-tag on-navy">
-            <Search className="h-4 w-4" aria-hidden="true" />
-            {projects.length} projetos
-          </span>
-        </div>
-      </section>
-
-      <main className="mx-auto grid max-w-[1344px] grid-cols-1 gap-6 px-4 pb-16 pt-10 sm:px-6 md:grid-cols-2 md:px-12 md:pt-14 xl:grid-cols-3">
-        {projects.map((project) => (
-          <ProjectCard
-            key={project.id}
-            project={project}
-            author={users.find((user) => user.id === project.authorIds[0])}
-            isFavorited={favoritedProjectIds.includes(project.id)}
-            onToggleFavorite={() => onToggleFavorite(project.id)}
-          />
-        ))}
       </main>
     </div>
   );
@@ -728,37 +699,6 @@ function ProjectDetailPage({ projects, users, favoritedProjectIds, onToggleFavor
   );
 }
 
-function EventsPage({ events, registeredEventIds, onToggleRegistration }: {
-  events: Event[];
-  registeredEventIds: string[];
-  onToggleRegistration: (eventId: string) => void;
-}) {
-  return (
-    <div className="min-h-screen bg-paper text-ink">
-      <section className="capy-hero-shell">
-        <div className="mx-auto flex max-w-[1344px] flex-wrap items-end justify-between gap-6 px-4 py-10 sm:px-6 md:px-12 md:py-14">
-          <div className="flex flex-col gap-2">
-            <span className="text-[17px] font-semibold text-gold-light">Eventos</span>
-            <h1 className="max-w-[15em] font-display text-4xl font-extrabold leading-[0.98] tracking-[-0.04em] text-on-navy [text-wrap:balance] md:text-[56px] lg:text-[68px]">Agenda acadêmica e oportunidades</h1>
-          </div>
-          <span className="cf-tag on-navy">
-            <Search className="h-4 w-4" aria-hidden="true" />
-            {events.length} eventos
-          </span>
-        </div>
-      </section>
-
-      <main className="mx-auto max-w-[1344px] px-4 pb-16 pt-10 sm:px-6 md:px-12 md:pt-14">
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {events.map((event) => (
-            <EventCard key={event.id} event={event} isRegistered={registeredEventIds.includes(event.id)} onToggleRegistration={() => onToggleRegistration(event.id)} />
-          ))}
-        </div>
-      </main>
-    </div>
-  );
-}
-
 function EventDetailPage({ events, registeredEventIds, onToggleRegistration, loading }: {
   events: Event[];
   loading: boolean;
@@ -839,46 +779,6 @@ function EventDetailPage({ events, registeredEventIds, onToggleRegistration, loa
             </div>
           </aside>
         </div>
-      </main>
-    </div>
-  );
-}
-
-function PeoplePage({ users, currentUserId, connectedUserIds, onToggleConnect, initialSearch }: {
-  users: User[];
-  currentUserId: string;
-  connectedUserIds: string[];
-  onToggleConnect: (userId: string) => void;
-  initialSearch: string;
-}) {
-  const [searchTerm, setSearchTerm] = useState(initialSearch);
-
-  const filteredUsers = useMemo(() => {
-    return users.filter((user) => {
-      const target = `${user.name} ${user.focus} ${user.course ?? ''} ${user.institution}`.toLowerCase();
-      return target.includes(searchTerm.toLowerCase());
-    });
-  }, [searchTerm, users]);
-
-  return (
-    <div className="bg-paper">
-      <section className="capy-hero-shell">
-        <div className="mx-auto flex max-w-[1344px] flex-col gap-6 px-4 py-10 sm:px-6 md:px-12 md:py-14">
-          <div className="flex flex-col gap-2">
-            <span className="text-[17px] font-semibold text-gold-light">Pessoas</span>
-            <h1 className="max-w-[15em] font-display text-4xl font-extrabold leading-[0.98] tracking-[-0.04em] text-on-navy [text-wrap:balance] md:text-[56px] lg:text-[68px]">Conecte-se com estudantes e pesquisadores</h1>
-          </div>
-          <div role="search" className="cf-search hero w-full max-w-2xl">
-            <Search className="h-6 w-6 flex-none text-ink-muted" aria-hidden="true" />
-            <input value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} aria-label="Buscar por nome ou foco" placeholder="Buscar por nome ou foco" />
-          </div>
-        </div>
-      </section>
-
-      <main className="mx-auto grid max-w-[1344px] grid-cols-1 gap-6 px-4 [&>*]:min-w-0 pb-16 pt-10 sm:px-6 md:grid-cols-2 md:px-12 md:pt-14 xl:grid-cols-3">
-        {filteredUsers.map((user, index) => (
-          <UserCard key={user.id} user={user} index={index} isSelf={user.id === currentUserId} isConnected={connectedUserIds.includes(user.id)} onToggleConnect={() => onToggleConnect(user.id)} />
-        ))}
       </main>
     </div>
   );

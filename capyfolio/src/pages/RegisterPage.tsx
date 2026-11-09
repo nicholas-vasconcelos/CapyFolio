@@ -29,7 +29,7 @@ type RegisterData = {
 };
 
 const STEPS = [
-  { label: 'Acesso', title: 'Crie seu acesso', lead: 'Comece com seu nome, e-mail e uma senha.' },
+  { label: 'Acesso', title: 'Crie seu acesso', lead: 'Comece com seu nome, sobrenome, e-mail e uma senha.' },
   { label: 'Formação', title: 'Sua formação', lead: 'Comece pelo nível de formação; as outras perguntas dependem dele.' },
   { label: 'Competências', title: 'Suas competências', lead: 'Escolha as mais comuns no seu curso ou busque qualquer outra. Você pode mudar depois.' },
   { label: 'Perfil', title: 'Foto e resumo', lead: 'Escolha uma foto e escreva um resumo curto. As duas etapas são opcionais.' },
@@ -42,7 +42,8 @@ export function RegisterPage({ onRegister }: { onRegister: (data: RegisterData) 
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState({
-    name: '',
+    firstName: '',
+    lastName: '',
     email: '',
     password: '',
     confirmPassword: '',
@@ -83,13 +84,18 @@ export function RegisterPage({ onRegister }: { onRegister: (data: RegisterData) 
       return next;
     });
 
+  // Nome and Sobrenome are stored together as the profile's full name.
+  const fullName = [form.firstName, form.lastName].map((part) => part.trim().replace(/\s+/g, ' ')).filter(Boolean).join(' ');
+
   const validate = (index: number): Record<string, string> => {
     const next: Record<string, string> = {};
     if (index === 0) {
-      if (!form.name.trim()) next.name = 'Informe seu nome completo.';
-      else {
-        const problem = validateText(form.name, 'Nome', TEXT_LIMITS.name);
-        if (problem) next.name = problem;
+      if (!form.firstName.trim()) next.firstName = 'Informe seu nome.';
+      if (!form.lastName.trim()) next.lastName = 'Informe seu sobrenome.';
+      if (!next.firstName && !next.lastName) {
+        // Saved as one full name, so the combined value follows the name rules.
+        const problem = validateText(fullName, 'Nome completo', TEXT_LIMITS.name);
+        if (problem) next.lastName = problem;
       }
       if (!form.email.trim()) next.email = 'Informe seu e-mail.';
       else if (!/^\S+@\S+\.\S+$/.test(form.email.trim())) next.email = 'Informe um e-mail válido.';
@@ -129,7 +135,7 @@ export function RegisterPage({ onRegister }: { onRegister: (data: RegisterData) 
   const submit = async () => {
     setIsSubmitting(true);
     const result = await onRegister({
-      name: form.name.trim(),
+      name: fullName,
       email: form.email.trim(),
       password: form.password,
       confirmPassword: form.confirmPassword,
@@ -208,9 +214,14 @@ export function RegisterPage({ onRegister }: { onRegister: (data: RegisterData) 
         <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-[18px]">
           {step === 0 && (
             <>
-              <Field id="cadastro-name" label="Nome completo" error={errors.name}>
-                <input id="cadastro-name" type="text" autoComplete="name" value={form.name} onChange={(event) => set('name')(event.target.value)} className="cf-input" placeholder="Como você quer ser chamado(a)" />
-              </Field>
+              <div className="grid grid-cols-1 gap-[18px] sm:grid-cols-2">
+                <Field id="cadastro-firstName" label="Nome" error={errors.firstName}>
+                  <input id="cadastro-firstName" type="text" autoComplete="given-name" value={form.firstName} onChange={(event) => set('firstName')(event.target.value)} className="cf-input" placeholder="Seu nome" {...errorProps('cadastro-firstName', errors.firstName)} />
+                </Field>
+                <Field id="cadastro-lastName" label="Sobrenome" error={errors.lastName}>
+                  <input id="cadastro-lastName" type="text" autoComplete="family-name" value={form.lastName} onChange={(event) => set('lastName')(event.target.value)} className="cf-input" placeholder="Seu sobrenome" {...errorProps('cadastro-lastName', errors.lastName)} />
+                </Field>
+              </div>
               <Field id="cadastro-email" label="E-mail institucional" error={errors.email}>
                 <input id="cadastro-email" type="email" autoComplete="email" value={form.email} onChange={(event) => set('email')(event.target.value)} className="cf-input" placeholder="seu@universidade.br" />
               </Field>

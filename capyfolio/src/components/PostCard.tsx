@@ -1,4 +1,4 @@
-import { Heart, MessageSquare, Sparkles } from 'lucide-react';
+import { Clock, Heart, MessageSquare } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { Post } from '../types';
 import { TEXT_LIMITS } from '../lib/contentRules';
@@ -60,7 +60,7 @@ export function PostCard({
             <MessageSquare className="h-5 w-5" aria-hidden="true" /> {total}
           </Link>
         )}
-        <span className="ml-auto inline-flex items-center gap-1.5 text-sm text-ink-muted"><Sparkles className="h-4 w-4" aria-hidden="true" /> {post.timestamp}</span>
+        <span className="ml-auto inline-flex items-center gap-1.5 text-sm text-ink-muted"><Clock className="h-4 w-4" aria-hidden="true" /> {post.timestamp}</span>
       </div>
 
       {shown.length > 0 && (

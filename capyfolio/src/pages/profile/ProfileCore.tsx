@@ -163,7 +163,6 @@ function LockNote() {
 const formatConnections = (count: number): string => plural(count, t.profile.connectionsOne, t.profile.connectionsOther);
 
 export function ProfileCore({ user, isOwnProfile, isConnected, onToggleConnect, onOpenNewProject, heroSlot, isEditing = false, onToggleEditing, showLock = isEditing, onChangePhoto, onUseDefaultPhoto, onChangeTags }: ProfileCoreProps) {
-  const firstName = user.name.split(' ')[0];
   const studyLine = [user.course, user.institution, user.location].filter(Boolean).join(' · ');
 
   return (
@@ -213,7 +212,7 @@ export function ProfileCore({ user, isOwnProfile, isConnected, onToggleConnect, 
               )}
               </div>
               <div className="min-w-0">
-                <h1 className="m-0 font-display text-[clamp(2.9rem,9vw,6.5rem)] font-extrabold leading-[0.9] tracking-[-0.045em] text-on-navy md:text-[104px]">{firstName}</h1>
+                <h1 className="m-0 font-display text-[clamp(2.4rem,7vw,5rem)] font-extrabold leading-[0.95] tracking-[-0.04em] text-on-navy [overflow-wrap:anywhere] [text-wrap:balance] md:text-[80px]">{user.name}</h1>
                 <p className="mt-2 font-display text-base font-bold leading-[1.2] text-gold-light sm:text-[22px] md:text-[26px]">{user.focus}</p>
                 {studyLine && <p className="mt-1 text-sm text-on-navy-muted sm:text-base md:text-lg">{studyLine}</p>}
                 <p className="mt-3 flex items-center gap-2 text-sm font-semibold text-on-navy-muted [font-variant-numeric:tabular-nums]">
