@@ -58,7 +58,7 @@ function SpecialtiesPanel({ user, onChangeTags }: { user: User; onChangeTags?: (
   };
 
   return (
-    <div className="flex min-w-0 flex-[2.1_1_480px] flex-col gap-3 rounded-xl border-2 border-ink bg-navy-tint px-6 py-[18px] shadow-[5px_5px_0_var(--navy)]">
+    <div className="col-span-full flex min-w-0 flex-col gap-3 rounded-xl lg:col-span-2 border-2 border-ink bg-navy-tint px-6 py-[18px] shadow-[5px_5px_0_var(--navy)]">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <span className="text-[15px] text-ink-muted">{t.profile.specialties}</span>
         {onChangeTags && !draft && (
@@ -212,7 +212,7 @@ export function ProfileCore({ user, isOwnProfile, isConnected, onToggleConnect, 
               )}
               </div>
               <div className="min-w-0">
-                <h1 className="m-0 font-display text-[clamp(2.4rem,7vw,5rem)] font-extrabold leading-[0.95] tracking-[-0.04em] text-on-navy [overflow-wrap:anywhere] [text-wrap:balance] md:text-[80px]">{user.name}</h1>
+                <h1 className="m-0 font-display text-[clamp(2.2rem,4.6vw,4.25rem)] font-extrabold leading-[0.95] tracking-[-0.04em] text-on-navy [overflow-wrap:break-word] [text-wrap:balance]">{user.name}</h1>
                 <p className="mt-2 font-display text-base font-bold leading-[1.2] text-gold-light sm:text-[22px] md:text-[26px]">{user.focus}</p>
                 {studyLine && <p className="mt-1 text-sm text-on-navy-muted sm:text-base md:text-lg">{studyLine}</p>}
                 <p className="mt-3 flex items-center gap-2 text-sm font-semibold text-on-navy-muted [font-variant-numeric:tabular-nums]">
@@ -239,7 +239,8 @@ export function ProfileCore({ user, isOwnProfile, isConnected, onToggleConnect, 
         </div>
       </section>
 
-      <div className="relative mx-auto -mt-14 box-border flex max-w-[1344px] flex-wrap gap-6 px-4 sm:px-6 md:px-12">
+      {/* Same columns and gap as the widget grid below (WidgetGrid), so the card edges line up. */}
+      <div className="relative mx-auto -mt-14 box-border grid max-w-[1344px] grid-cols-1 gap-8 px-4 sm:grid-cols-2 sm:px-6 md:px-12 lg:grid-cols-4">
         <div className="cf-stat shadow-[5px_5px_0_var(--green)]">
           <span>{t.profile.course}</span>
           <strong>{user.course || t.profile.coursePlaceholder}</strong>
