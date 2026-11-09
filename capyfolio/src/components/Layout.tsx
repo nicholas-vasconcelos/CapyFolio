@@ -34,7 +34,7 @@ export function Layout({
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-paper text-ink antialiased selection:bg-navy/15 selection:text-navy overflow-x-hidden">
+    <div className="min-h-screen flex flex-col bg-paper text-ink antialiased overflow-x-hidden">
       {/* NavBar: NavLink sets aria-current="page", which .cf-nav turns into the gold pill. */}
       <header className="cf-nav sticky top-0 z-30 flex-nowrap justify-between gap-x-4 px-4 sm:px-6 xl:px-12">
         <button type="button" onClick={() => navigate('/feed')} className="flex min-h-[44px] flex-none items-center cursor-pointer">
@@ -74,9 +74,9 @@ export function Layout({
             <span>Publicar</span>
           </button>
 
-          <Link to="/eventos" className="cf-icon-btn relative" title="Notificações Acadêmicas" aria-label="Notificações Acadêmicas">
+          {/* There are no notifications yet, so no unread dot: the bell only leads to upcoming events. */}
+          <Link to="/eventos" className="cf-icon-btn relative" title="Próximos eventos" aria-label="Próximos eventos">
             <Bell className="h-5 w-5" aria-hidden="true" />
-            <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full border-2 border-ink bg-gold" aria-hidden="true" />
           </Link>
 
           <Link to="/perfil" className="hidden rounded-full sm:inline-flex" title={`Portfólio de ${currentUser.name}`}>

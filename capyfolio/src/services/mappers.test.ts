@@ -79,6 +79,8 @@ const profileRow: ProfileRow = {
   institution: 'Universidade Federal Fluminense (UFF)',
   short_institution: 'UFF',
   course: 'Ciência da Computação',
+  education_level: 'bachelor',
+  education_status: 'in_progress',
   period: '7º Período',
   location: 'Niterói, RJ',
   bio: 'Bio',

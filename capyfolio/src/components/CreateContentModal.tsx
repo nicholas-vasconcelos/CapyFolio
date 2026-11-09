@@ -1,66 +1,42 @@
-import { X } from 'lucide-react';
+import { AlertCircle, ArrowRight, X } from 'lucide-react';
 import { useState } from 'react';
-import type { Project, User } from '../types';
+import { TEXT_LIMITS, validateText } from '../lib/contentRules';
 
+function FieldError({ message }: { message?: string }) {
+  if (!message) return null;
+  return (
+    <span role="alert" className="mt-1.5 flex items-start gap-1.5 text-sm font-semibold text-ink">
+      <AlertCircle className="mt-0.5 h-4 w-4 flex-none" aria-hidden="true" />
+      {message}
+    </span>
+  );
+}
+
+/**
+ * "Publicar" popup. Posts are written here; projects have their own step-by-step page
+ * (/projeto/novo), so the Projeto tab only leads there.
+ */
 export function CreateContentModal({
-  currentUser,
-  projects,
   defaultTab,
   onClose,
   onSubmitPost,
-  onSubmitProject,
+  onStartProject,
 }: {
-  currentUser: User;
-  projects: Project[];
   defaultTab: 'project' | 'post';
   onClose: () => void;
   onSubmitPost: (data: { category: string; content: string; relatedProjectId?: string | null }) => void;
-  onSubmitProject: (data: {
-    title: string;
-    shortDescription: string;
-    summary: string;
-    area: string;
-    type: string;
-    status: string;
-    period: string;
-    tags: string[];
-    url: string;
-    setAsFeatured: boolean;
-    keyResults: string[];
-  }) => void;
+  /** Closes the popup and opens the new-project page. */
+  onStartProject: () => void;
 }) {
-  const [activeTab, setActiveTab] = useState<'project' | 'post'>(defaultTab || 'project');
+  const [activeTab, setActiveTab] = useState<'project' | 'post'>(defaultTab || 'post');
   const [postDraft, setPostDraft] = useState({ category: 'Pesquisa Acadêmica', content: '' });
-  const [projectDraft, setProjectDraft] = useState({
-    title: '',
-    shortDescription: '',
-    summary: '',
-    area: 'Dados e Análise',
-    type: 'Projeto de pesquisa',
-    status: 'Em andamento',
-    period: '2025 - 2026',
-    tags: 'Python, Dados e Análise',
-    url: '',
-    setAsFeatured: false,
-    keyResults: [''],
-  });
+  const [error, setError] = useState<string | null>(null);
 
-  const submitProject = () => {
-    const tags = projectDraft.tags.split(',').map((t) => t.trim()).filter(Boolean);
-    const keyResults = projectDraft.keyResults.map((value) => value.trim()).filter(Boolean);
-    onSubmitProject({
-      title: projectDraft.title.trim(),
-      shortDescription: projectDraft.shortDescription.trim(),
-      summary: projectDraft.summary.trim() || projectDraft.shortDescription.trim(),
-      area: projectDraft.area,
-      type: projectDraft.type,
-      status: projectDraft.status,
-      period: projectDraft.period,
-      tags,
-      url: projectDraft.url.trim(),
-      setAsFeatured: projectDraft.setAsFeatured,
-      keyResults,
-    });
+  const submitPost = () => {
+    const message = validateText(postDraft.content, 'Conteúdo', TEXT_LIMITS.post);
+    setError(message);
+    if (message) return;
+    onSubmitPost({ category: postDraft.category, content: postDraft.content.trim() });
   };
 
   return (
@@ -71,7 +47,7 @@ export function CreateContentModal({
             <h3 className="text-lg font-bold text-navy">Publicar conteúdo</h3>
             <p className="text-xs text-gray-500">Compartilhe uma atualização ou um novo projeto acadêmico.</p>
           </div>
-          <button type="button" onClick={onClose} className="flex h-11 w-11 items-center justify-center rounded-lg text-gray-400 transition-colors hover:text-gray-600">
+          <button type="button" onClick={onClose} aria-label="Fechar" className="flex h-11 w-11 items-center justify-center rounded-lg text-gray-400 transition-colors hover:text-gray-600">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -86,83 +62,23 @@ export function CreateContentModal({
         </div>
 
         {activeTab === 'project' ? (
-          <div className="space-y-4 p-4 sm:p-6">
-            <div>
-              <label className="block text-xs font-semibold text-ink mb-1.5">Título do projeto</label>
-              <input value={projectDraft.title} onChange={(event) => setProjectDraft((current) => ({ ...current, title: event.target.value }))} className="min-h-[44px] w-full rounded-lg border border-line-strong bg-white px-3.5 py-2.5 text-sm focus:border-navy focus:outline-none" placeholder="Ex: Observatório de dados urbanos e climáticos" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-ink mb-1.5">Resumo curto</label>
-              <input value={projectDraft.shortDescription} onChange={(event) => setProjectDraft((current) => ({ ...current, shortDescription: event.target.value }))} className="min-h-[44px] w-full rounded-lg border border-line-strong bg-white px-3.5 py-2.5 text-sm focus:border-navy focus:outline-none" placeholder="Descreva o contexto e a contribuição do projeto." />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-ink mb-1.5">Descrição detalhada</label>
-              <textarea value={projectDraft.summary} onChange={(event) => setProjectDraft((current) => ({ ...current, summary: event.target.value }))} rows={4} className="min-h-[44px] w-full rounded-lg border border-line-strong bg-white px-3.5 py-2.5 text-sm focus:border-navy focus:outline-none" placeholder="Descreva a metodologia, objetivos e principais resultados esperados." />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-ink mb-1.5">Área</label>
-                <input value={projectDraft.area} onChange={(event) => setProjectDraft((current) => ({ ...current, area: event.target.value }))} className="min-h-[44px] w-full rounded-lg border border-line-strong bg-white px-3.5 py-2.5 text-sm focus:border-navy focus:outline-none" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-ink mb-1.5">Tipo</label>
-                <input value={projectDraft.type} onChange={(event) => setProjectDraft((current) => ({ ...current, type: event.target.value }))} className="w-full bg-white border border-line-strong rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:border-navy" />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-ink mb-1.5">Status</label>
-                <select value={projectDraft.status} onChange={(event) => setProjectDraft((current) => ({ ...current, status: event.target.value }))} className="min-h-[44px] w-full rounded-lg border border-line-strong bg-white px-3.5 py-2.5 text-sm focus:border-navy focus:outline-none">
-                  <option>Em andamento</option>
-                  <option>Concluído</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-ink mb-1.5">Período</label>
-                <input value={projectDraft.period} onChange={(event) => setProjectDraft((current) => ({ ...current, period: event.target.value }))} className="min-h-[44px] w-full rounded-lg border border-line-strong bg-white px-3.5 py-2.5 text-sm focus:border-navy focus:outline-none" />
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-ink mb-1.5">Tags</label>
-              <input value={projectDraft.tags} onChange={(event) => setProjectDraft((current) => ({ ...current, tags: event.target.value }))} className="min-h-[44px] w-full rounded-lg border border-line-strong bg-white px-3.5 py-2.5 text-sm focus:border-navy focus:outline-none" placeholder="Python, IA, Dados, Pesquisa" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-ink mb-1.5">URL externa</label>
-              <input value={projectDraft.url} onChange={(event) => setProjectDraft((current) => ({ ...current, url: event.target.value }))} className="min-h-[44px] w-full rounded-lg border border-line-strong bg-white px-3.5 py-2.5 text-sm focus:border-navy focus:outline-none" placeholder="https://github.com/seu-projeto" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-ink mb-1.5">Principais resultados</label>
-              {projectDraft.keyResults.map((result, index) => (
-                <div key={index} className="flex gap-2 mb-2">
-                  <input
-                    value={result}
-                    onChange={(event) => {
-                      const next = [...projectDraft.keyResults];
-                      next[index] = event.target.value;
-                      setProjectDraft((current) => ({ ...current, keyResults: next }));
-                    }}
-                    className="min-h-[44px] flex-1 rounded-lg border border-line-strong bg-white px-3.5 py-2.5 text-sm focus:border-navy focus:outline-none"
-                    placeholder="Resultado-chave"
-                  />
-                  <button type="button" onClick={() => setProjectDraft((current) => ({ ...current, keyResults: current.keyResults.filter((_, i) => i !== index) }))} className="px-2 rounded-lg border border-line-strong text-gray-500 hover:bg-gray-50 cursor-pointer">–</button>
-                </div>
-              ))}
-              <button type="button" onClick={() => setProjectDraft((current) => ({ ...current, keyResults: [...current.keyResults, ''] }))} className="min-h-[44px] text-xs font-semibold text-navy hover:underline">+ Adicionar resultado</button>
-            </div>
-            <label className="inline-flex items-center gap-2 text-sm text-ink">
-              <input type="checkbox" checked={projectDraft.setAsFeatured} onChange={(event) => setProjectDraft((current) => ({ ...current, setAsFeatured: event.target.checked }))} className="w-4 h-4 accent-navy" />
-              Definir como projeto em destaque no meu perfil
-            </label>
-            <div className="flex justify-end gap-3 pt-2">
-              <button type="button" onClick={onClose} className="px-4 py-2.5 rounded-lg border border-line-strong text-sm font-medium text-gray-600 hover:bg-gray-50 cursor-pointer">Cancelar</button>
-              <button type="button" onClick={submitProject} className="min-h-[44px] rounded-lg bg-navy px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#162D49]">Publicar projeto</button>
+          <div className="flex flex-col items-start gap-4 p-4 sm:p-6">
+            <p className="m-0 text-[15px] leading-[1.5] text-ink">
+              Projetos são publicados em uma página com etapas: informações básicas, resumo e metodologia, período e resultados, tags e anexos.
+            </p>
+            <div className="flex w-full flex-wrap justify-end gap-3 pt-2">
+              <button type="button" onClick={onClose} className="cf-btn">Cancelar</button>
+              <button type="button" onClick={onStartProject} className="cf-btn primary">
+                Começar projeto
+                <ArrowRight className="h-[18px] w-[18px]" aria-hidden="true" />
+              </button>
             </div>
           </div>
         ) : (
           <div className="space-y-4 p-4 sm:p-6">
             <div>
-              <label className="block text-xs font-semibold text-ink mb-1.5">Categoria</label>
-              <select value={postDraft.category} onChange={(event) => setPostDraft((current) => ({ ...current, category: event.target.value }))} className="min-h-[44px] w-full rounded-lg border border-line-strong bg-white px-3.5 py-2.5 text-sm focus:border-navy focus:outline-none">
+              <label htmlFor="post-category" className="block text-xs font-semibold text-ink mb-1.5">Categoria</label>
+              <select id="post-category" value={postDraft.category} onChange={(event) => setPostDraft((current) => ({ ...current, category: event.target.value }))} className="min-h-[44px] w-full rounded-lg border border-line-strong bg-white px-3.5 py-2.5 text-sm focus:border-navy focus:outline-none">
                 <option>Palestra Oficial</option>
                 <option>Pesquisa Acadêmica</option>
                 <option>Dados e Análise</option>
@@ -171,12 +87,13 @@ export function CreateContentModal({
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-ink mb-1.5">Conteúdo</label>
-              <textarea value={postDraft.content} onChange={(event) => setPostDraft((current) => ({ ...current, content: event.target.value }))} rows={6} className="min-h-[44px] w-full rounded-lg border border-line-strong bg-white px-3.5 py-2.5 text-sm focus:border-navy focus:outline-none" placeholder="Compartilhe uma atualização, resultado ou oportunidade acadêmica..." />
+              <label htmlFor="post-content" className="block text-xs font-semibold text-ink mb-1.5">Conteúdo</label>
+              <textarea id="post-content" value={postDraft.content} onChange={(event) => setPostDraft((current) => ({ ...current, content: event.target.value }))} rows={6} maxLength={TEXT_LIMITS.post.maxChars} className="min-h-[44px] w-full rounded-lg border border-line-strong bg-white px-3.5 py-2.5 text-sm focus:border-navy focus:outline-none" placeholder="Compartilhe uma atualização, resultado ou oportunidade acadêmica..." />
+              <FieldError message={error ?? undefined} />
             </div>
             <div className="flex justify-end gap-3 pt-2">
               <button type="button" onClick={onClose} className="px-4 py-2.5 rounded-lg border border-line-strong text-sm font-medium text-gray-600 hover:bg-gray-50 cursor-pointer">Cancelar</button>
-              <button type="button" onClick={() => { if (postDraft.content.trim()) { onSubmitPost({ category: postDraft.category, content: postDraft.content.trim() }); } }} className="min-h-[44px] rounded-lg bg-navy px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#162D49]">Publicar atualização</button>
+              <button type="button" onClick={submitPost} className="min-h-[44px] rounded-lg bg-navy px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#162D49]">Publicar atualização</button>
             </div>
           </div>
         )}

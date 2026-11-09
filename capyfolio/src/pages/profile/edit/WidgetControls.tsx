@@ -1,6 +1,6 @@
 import { useId, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Palette, Settings2, Trash2 } from 'lucide-react';
+import { Palette, Settings as Gear, Trash2 } from 'lucide-react';
 import type { WidgetInstance, WidgetSize } from '../../../types';
 import type { LayoutContext } from '../../../widgets/specs';
 import { WIDGET_REGISTRY } from '../../../widgets/registry';
@@ -87,7 +87,7 @@ export function WidgetControls({ widget, editor, ctx, inHero = false, index = 0,
         </IconButton>
         {Settings && (
           <IconButton label={t.editor.configure} pressed={panel === 'settings'} onClick={() => toggle('settings')}>
-            <Settings2 className="h-5 w-5" aria-hidden="true" />
+            <Gear className="h-5 w-5" aria-hidden="true" />
           </IconButton>
         )}
         <IconButton label={inHero ? t.editor.removeFromHero : t.editor.remove} onClick={() => onRemove(widget.id)}>

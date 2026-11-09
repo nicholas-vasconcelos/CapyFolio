@@ -31,15 +31,7 @@ export function keyResultHighlight(sentence: string): string | null {
   return null;
 }
 
-/** Turns a stored profile link ("github.com/x") into an absolute https URL. */
-export function externalUrl(value: string): string {
-  const trimmed = value.trim();
-  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
-}
-
-/** The link as people read it: no protocol, no "www.", no trailing slash. */
-export function displayUrl(value: string): string {
-  return value.trim().replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/$/, '');
-}
+// Link helpers live in lib/url so pages outside the widgets can share them.
+export { displayUrl, externalUrl } from '../lib/url';
 
 export const projectCountLabel = (count: number): string => plural(count, t.views.projectsOne, t.views.projectsOther);

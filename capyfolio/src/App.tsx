@@ -1,6 +1,6 @@
 ﻿import { useMemo, useState } from 'react';
 import { BrowserRouter, Link, Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom';
-import { ArrowUpRight, CheckCircle2, Search } from 'lucide-react';
+import { ArrowUpRight, Download, Search } from 'lucide-react';
 
 import { AppDataProvider, useAppData } from './context/AppDataContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -10,7 +10,8 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { Toast } from './components/Toast';
 import { CreateContentModal } from './components/CreateContentModal';
 import { EventCard } from './components/EventCard';
-import { PostCard } from './components/PostCard';
+import { FEED_COMMENT_LIMIT, PostCard } from './components/PostCard';
+import { PostPage } from './pages/PostPage';
 import { ProjectCard } from './components/ProjectCard';
 import { UserCard } from './components/UserCard';
 import { Avatar } from './components/Avatar';
@@ -22,7 +23,13 @@ import { postService } from './services/postService';
 import { projectService } from './services/projectService';
 import { userService } from './services/userService';
 import { connectionService, favoriteService, registrationService } from './services/membershipServices';
-import type { Event, Post, Project, User } from './types';
+import type { Event, Post, Project, ProjectFile, User } from './types';
+import { NewProjectPage } from './pages/NewProjectPage';
+import type { NewProjectSubmission } from './pages/NewProjectPage';
+import { uploadProjectFile } from './lib/storage';
+import { TEXT_LIMITS, isBlockedContentError, validateText } from './lib/contentRules';
+import { externalUrl } from './lib/url';
+import { t } from './i18n';
 
 const SAVE_ERROR_MESSAGE = 'Não foi possível salvar. Tente novamente.';
 
@@ -32,7 +39,7 @@ const toggleId = (ids: string[], id: string, on: boolean) => (on ? (ids.includes
 function AppShell() {
   const { currentUser, isAuthenticated, isPasswordRecovery, login, register, logout, setCurrentUser } = useAuth();
   const {
-    users, projects, events, posts, favoritedProjectIds, registeredEventIds, connectedUserIds,
+    users, projects, events, posts, favoritedProjectIds, registeredEventIds, connectedUserIds, loading,
     setUsers, setProjects, setEvents, setPosts, setFavoritedProjectIds, setRegisteredEventIds, setConnectedUserIds,
   } = useAppData();
   const { toastMessage, showToast, clearToast } = useToast();
@@ -62,6 +69,8 @@ function AppShell() {
     email: string;
     password: string;
     confirmPassword: string;
+    educationLevel: string;
+    educationStatus: string | null;
     institution: string;
     course: string;
     period: string;
@@ -179,7 +188,7 @@ function AppShell() {
     } catch (cause) {
       console.error(cause);
       if (previous) setUsers((list) => list.map((user) => (user.id === previous.id ? previous : user)));
-      showToast(SAVE_ERROR_MESSAGE);
+      showToast(isBlockedContentError(cause) ? t.validation.blockedByServer : SAVE_ERROR_MESSAGE);
       throw cause;
     }
   };
@@ -212,24 +221,28 @@ function AppShell() {
       navigate('/feed');
     } catch (cause) {
       console.error(cause);
-      showToast('Não foi possível publicar. Tente novamente.');
+      showToast(isBlockedContentError(cause) ? t.validation.blockedByServer : 'Não foi possível publicar. Tente novamente.');
     }
   };
 
-  const handleCreateProject = async (payload: {
-    title: string;
-    shortDescription: string;
-    summary: string;
-    area: string;
-    type: string;
-    status: string;
-    period: string;
-    tags: string[];
-    url: string;
-    setAsFeatured: boolean;
-    keyResults: string[];
-  }) => {
-    if (!currentUser) return;
+  /** Uploads the attachments, saves the project and opens it. False (after a toast) when something failed. */
+  const handleCreateProject = async (payload: NewProjectSubmission): Promise<boolean> => {
+    if (!currentUser) return false;
+
+    let files: ProjectFile[];
+    try {
+      files = await Promise.all(
+        payload.attachments.map((attachment) =>
+          attachment.kind === 'file'
+            ? uploadProjectFile(attachment.file)
+            : Promise.resolve<ProjectFile>({ kind: 'link', name: attachment.name, size: '', type: 'Link', url: attachment.url }),
+        ),
+      );
+    } catch (cause) {
+      console.error(cause);
+      showToast(cause instanceof Error && cause.message ? cause.message : 'Não foi possível enviar os arquivos. Tente novamente.');
+      return false;
+    }
 
     let saved: Project;
     try {
@@ -239,7 +252,7 @@ function AppShell() {
           shortDescription: payload.shortDescription,
           summary: payload.summary,
           keyResults: payload.keyResults,
-          methodology: payload.summary,
+          methodology: payload.methodology,
           institution: currentUser.institution,
           area: payload.area,
           type: payload.type,
@@ -247,13 +260,14 @@ function AppShell() {
           period: payload.period,
           tags: payload.tags,
           url: payload.url,
+          files,
         },
         currentUser.id,
       );
     } catch (cause) {
       console.error(cause);
-      showToast('Não foi possível publicar o projeto. Tente novamente.');
-      return;
+      showToast(isBlockedContentError(cause) ? t.validation.blockedByServer : 'Não foi possível publicar o projeto. Tente novamente.');
+      return false;
     }
 
     setProjects((previous) => [saved, ...previous]);
@@ -270,8 +284,13 @@ function AppShell() {
     }
 
     showToast('Projeto publicado com sucesso!');
-    setIsCreateModalOpen(false);
     navigate(`/projeto/${saved.id}`);
+    return true;
+  };
+
+  const openNewProject = () => {
+    setIsCreateModalOpen(false);
+    navigate('/projeto/novo');
   };
 
   const updatePost = (postId: string, update: (post: Post) => Post) =>
@@ -298,9 +317,21 @@ function AppShell() {
     }
   };
 
-  const handleAddComment = async (postId: string, text: string) => {
+  /** Checks the comment and starts saving it. False (with a toast) when the text was refused, so the box keeps it. */
+  const handleAddComment = (postId: string, text: string): boolean => {
     const body = text.trim();
-    if (!currentUser || !body) return;
+    if (!currentUser || !body) return false;
+    const problem = validateText(body, 'Comentário', TEXT_LIMITS.comment);
+    if (problem) {
+      showToast(problem);
+      return false;
+    }
+    void saveComment(postId, body);
+    return true;
+  };
+
+  const saveComment = async (postId: string, body: string) => {
+    if (!currentUser) return;
 
     const tempId = `pending-${crypto.randomUUID()}`;
     updatePost(postId, (post) => ({
@@ -324,7 +355,7 @@ function AppShell() {
     } catch (cause) {
       console.error(cause);
       updatePost(postId, (post) => ({ ...post, comments: post.comments.filter((comment) => comment.id !== tempId) }));
-      showToast('Não foi possível enviar o comentário. Tente novamente.');
+      showToast(isBlockedContentError(cause) ? t.validation.blockedByServer : 'Não foi possível enviar o comentário. Tente novamente.');
     }
   };
 
@@ -358,14 +389,16 @@ function AppShell() {
         >
           <Routes>
             <Route path="/" element={<Navigate to="/feed" replace />} />
-            <Route path="/feed" element={<ProtectedRoute><FeedPage currentUser={currentUser} posts={posts} projects={projects} events={events} users={users} onOpenCreateModal={(tab) => { setCreateModalDefaultTab(tab); setIsCreateModalOpen(true); }} onToggleLike={handleToggleLikePost} onAddComment={handleAddComment} /></ProtectedRoute>} />
+            <Route path="/feed" element={<ProtectedRoute><FeedPage currentUser={currentUser} posts={posts} projects={projects} events={events} users={users} onOpenCreateModal={(tab) => { if (tab === 'project') openNewProject(); else { setCreateModalDefaultTab(tab); setIsCreateModalOpen(true); } }} onToggleLike={handleToggleLikePost} onAddComment={handleAddComment} /></ProtectedRoute>} />
+            <Route path="/post/:id" element={<ProtectedRoute><PostPage currentUser={currentUser} posts={posts} loading={loading} onToggleLike={handleToggleLikePost} onAddComment={handleAddComment} /></ProtectedRoute>} />
             <Route path="/projetos" element={<ProtectedRoute><ProjectsPage projects={projects} users={users} favoritedProjectIds={favoritedProjectIds} onToggleFavorite={handleToggleFavoriteProject} /></ProtectedRoute>} />
-            <Route path="/projeto/:id" element={<ProtectedRoute><ProjectDetailPage projects={projects} users={users} favoritedProjectIds={favoritedProjectIds} onToggleFavorite={handleToggleFavoriteProject} /></ProtectedRoute>} />
+            <Route path="/projeto/novo" element={<ProtectedRoute><NewProjectPage currentUser={currentUser} onSubmit={handleCreateProject} /></ProtectedRoute>} />
+            <Route path="/projeto/:id" element={<ProtectedRoute><ProjectDetailPage projects={projects} loading={loading} users={users} favoritedProjectIds={favoritedProjectIds} onToggleFavorite={handleToggleFavoriteProject} /></ProtectedRoute>} />
             <Route path="/eventos" element={<ProtectedRoute><EventsPage events={events} registeredEventIds={registeredEventIds} onToggleRegistration={handleToggleEventRegistration} /></ProtectedRoute>} />
-            <Route path="/evento/:id" element={<ProtectedRoute><EventDetailPage events={events} registeredEventIds={registeredEventIds} onToggleRegistration={handleToggleEventRegistration} /></ProtectedRoute>} />
-            <Route path="/pessoas" element={<ProtectedRoute><PeoplePage users={users} connectedUserIds={connectedUserIds} onToggleConnect={handleToggleConnect} initialSearch={globalSearchQuery} /></ProtectedRoute>} />
-            <Route path="/perfil" element={<ProtectedRoute><ProfilePage currentUser={currentUser} users={users} projects={projects} connectedUserIds={connectedUserIds} onToggleConnect={handleToggleConnect} onSetFeaturedProject={handleSetFeaturedProject} onUpdateUser={handleUpdateUser} onOpenNewProject={() => { setCreateModalDefaultTab('project'); setIsCreateModalOpen(true); }} /></ProtectedRoute>} />
-            <Route path="/perfil/:id" element={<ProtectedRoute><ProfilePage currentUser={currentUser} users={users} projects={projects} connectedUserIds={connectedUserIds} onToggleConnect={handleToggleConnect} onSetFeaturedProject={handleSetFeaturedProject} onUpdateUser={handleUpdateUser} onOpenNewProject={() => { setCreateModalDefaultTab('project'); setIsCreateModalOpen(true); }} /></ProtectedRoute>} />
+            <Route path="/evento/:id" element={<ProtectedRoute><EventDetailPage events={events} loading={loading} registeredEventIds={registeredEventIds} onToggleRegistration={handleToggleEventRegistration} /></ProtectedRoute>} />
+            <Route path="/pessoas" element={<ProtectedRoute><PeoplePage users={users} currentUserId={currentUser?.id ?? ''} connectedUserIds={connectedUserIds} onToggleConnect={handleToggleConnect} initialSearch={globalSearchQuery} /></ProtectedRoute>} />
+            <Route path="/perfil" element={<ProtectedRoute><ProfilePage currentUser={currentUser} users={users} projects={projects} connectedUserIds={connectedUserIds} onToggleConnect={handleToggleConnect} onSetFeaturedProject={handleSetFeaturedProject} onUpdateUser={handleUpdateUser} onOpenNewProject={openNewProject} /></ProtectedRoute>} />
+            <Route path="/perfil/:id" element={<ProtectedRoute><ProfilePage currentUser={currentUser} users={users} projects={projects} connectedUserIds={connectedUserIds} onToggleConnect={handleToggleConnect} onSetFeaturedProject={handleSetFeaturedProject} onUpdateUser={handleUpdateUser} onOpenNewProject={openNewProject} /></ProtectedRoute>} />
             <Route path="/redefinir-senha" element={<ResetPasswordPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
@@ -382,12 +415,10 @@ function AppShell() {
 
       {isCreateModalOpen && currentUser && (
         <CreateContentModal
-          currentUser={currentUser}
-          projects={projects}
           defaultTab={createModalDefaultTab}
           onClose={() => setIsCreateModalOpen(false)}
           onSubmitPost={handleCreatePost}
-          onSubmitProject={handleCreateProject}
+          onStartProject={openNewProject}
         />
       )}
 
@@ -404,7 +435,7 @@ function FeedPage({ currentUser, posts, projects, events, onOpenCreateModal, onT
   users: User[];
   onOpenCreateModal: (tab: 'project' | 'post') => void;
   onToggleLike: (postId: string) => void;
-  onAddComment: (postId: string, text: string) => void;
+  onAddComment: (postId: string, text: string) => boolean;
 }) {
   return (
     <div className="bg-paper">
@@ -431,64 +462,14 @@ function FeedPage({ currentUser, posts, projects, events, onOpenCreateModal, onT
         <div className="flex flex-wrap gap-8 items-start">
           <div className="flex min-w-0 flex-[1_1_480px] flex-col gap-8">
             {posts.map((post) => (
-              <article key={post.id} className="rounded-2xl border-2 border-ink bg-surface p-6 shadow-card md:p-8">
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
-                  <Avatar name={post.authorName} size="md" tone="navy" />
-                  <div className="min-w-0 flex-[1_1_200px]">
-                    <strong className="block font-display text-[21px] font-bold leading-[1.2] text-ink">{post.authorName}</strong>
-                    <span className="text-[15px] text-ink-muted">{post.authorRole} • {post.authorInstitution}</span>
-                  </div>
-                  <span className="cf-tag topic flex-none">{post.category}</span>
-                </div>
-
-                <p className="mt-5 text-[19px] leading-[1.6] text-ink">{post.content}</p>
-
-                <div className="mt-5 flex flex-wrap items-center gap-3">
-                  <button type="button" onClick={() => onToggleLike(post.id)} aria-pressed={!!post.likedByMe} className={`cf-counter ${post.likedByMe ? 'liked' : ''}`}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill={post.likedByMe ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinejoin="round" aria-hidden="true"><path d="M12 20s-8-5-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 9c0 6-8 11-8 11Z" /></svg>
-                    {post.likes}
-                  </button>
-                  <button type="button" className="cf-counter">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4V5Z" /></svg>
-                    {post.comments.length}
-                  </button>
-                  <span className="ml-auto text-sm text-ink-muted">{post.timestamp}</span>
-                </div>
-
-                {post.comments.length > 0 && (
-                  <div className="mt-5 flex flex-col gap-3">
-                    {post.comments.slice(-1).map((comment) => (
-                      <div key={comment.id} className="cf-comment">
-                        <Avatar name={comment.authorName} size="xs" />
-                        <div className="flex min-w-0 flex-1 flex-col gap-1">
-                          <div className="flex items-center justify-between gap-3">
-                            <strong>{comment.authorName}</strong>
-                            <span className="text-sm text-ink-muted">{comment.timestamp}</span>
-                          </div>
-                          <p className="text-base leading-[1.5] text-ink">{comment.text}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <form
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    const form = event.currentTarget as HTMLFormElement;
-                    const input = form.querySelector('input') as HTMLInputElement | null;
-                    if (!input || !input.value.trim()) return;
-                    onAddComment(post.id, input.value);
-                    input.value = '';
-                  }}
-                  className="mt-5 flex flex-wrap gap-3"
-                >
-                  <input aria-label={`Responder como ${currentUser.name}`} placeholder={`Responder como ${currentUser.name}`} className="cf-input h-12 min-w-[200px] flex-1" />
-                  <button type="submit" className="cf-btn primary">
-                    Enviar
-                  </button>
-                </form>
-              </article>
+              <PostCard
+                key={post.id}
+                post={post}
+                currentUserName={currentUser.name}
+                commentLimit={FEED_COMMENT_LIMIT}
+                onToggleLike={() => onToggleLike(post.id)}
+                onAddComment={(text) => onAddComment(post.id, text)}
+              />
             ))}
           </div>
 
@@ -497,7 +478,7 @@ function FeedPage({ currentUser, posts, projects, events, onOpenCreateModal, onT
               <h2 className="font-display text-[26px] font-extrabold leading-[1.1] tracking-[-0.02em] text-navy">Projetos em destaque</h2>
               <div className="flex flex-col gap-3">
                 {projects.slice(0, 3).map((project) => (
-                  <a key={project.id} href={`/projeto/${project.id}`} className="cf-tile">
+                  <Link key={project.id} to={`/projeto/${project.id}`} className="cf-tile">
                     <span className="ic bg-navy-tint text-ink" aria-hidden="true">
                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3 3 7 3s7-1.3 7-3v-6"/></svg>
                     </span>
@@ -505,7 +486,7 @@ function FeedPage({ currentUser, posts, projects, events, onOpenCreateModal, onT
                       <strong className="truncate">{project.title}</strong>
                       <span className="meta">{project.area}</span>
                     </span>
-                  </a>
+                  </Link>
                 ))}
               </div>
             </div>
@@ -564,21 +545,23 @@ function ProjectsPage({ projects, users, favoritedProjectIds, onToggleFavorite }
   );
 }
 
-function ProjectDetailPage({ projects, users, favoritedProjectIds, onToggleFavorite }: {
+function ProjectDetailPage({ projects, users, favoritedProjectIds, onToggleFavorite, loading }: {
   projects: Project[];
+  loading: boolean;
   users: User[];
   favoritedProjectIds: string[];
   onToggleFavorite: (projectId: string) => void;
 }) {
   const { id } = useParams();
-  const project = projects.find((item) => item.id === id) ?? projects[0];
+  // No fallback to another project: an unknown id is a not-found page, not the first project.
+  const project = projects.find((item) => item.id === id);
   const [activeTab, setActiveTab] = useState('Visão geral');
-  const authors = users.filter((user) => project.authorIds.includes(user.id));
   const tabs = ['Visão geral', 'Metodologia', 'Resultados', 'Arquivos', 'Autores'];
 
   if (!project) {
-    return <NotFoundPage />;
+    return loading ? <LoadingPage /> : <NotFoundPage />;
   }
+  const authors = users.filter((user) => project.authorIds.includes(user.id));
 
   return (
     <div className="bg-paper">
@@ -660,19 +643,42 @@ function ProjectDetailPage({ projects, users, favoritedProjectIds, onToggleFavor
               {activeTab === 'Metodologia' && <p className="text-[19px] leading-[1.6] text-ink">{project.methodology}</p>}
               {activeTab === 'Resultados' && (
                 <ul className="flex flex-col gap-3">
-                  {project.keyResults.map((item) => (
-                    <li key={item} className="cf-result">
+                  {project.keyResults.map((item, index) => (
+                    <li key={`${index}-${item}`} className="cf-result">
                       <i aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" className="text-white"><path d="M5 12l5 5L20 7" /></svg></i>
                       <span>{item}</span>
                     </li>
                   ))}
                 </ul>
               )}
-              {activeTab === 'Arquivos' && (
+              {activeTab === 'Arquivos' && project.files.length === 0 && (
+                <div className="cf-empty">
+                  <h3>Nenhum arquivo anexado</h3>
+                  <p>Os autores ainda não adicionaram arquivos a este projeto.</p>
+                </div>
+              )}
+              {activeTab === 'Arquivos' && project.files.length > 0 && (
                 <div className="flex flex-col gap-3">
-                  {project.files.map((file) => (
-                    <div key={file.name} className="rounded-lg border-2 border-ink bg-surface px-4 py-3 text-base font-medium text-ink shadow-sm">
-                      {file.name} <span className="text-ink-muted">({file.size})</span>
+                  {project.files.map((file, index) => (
+                    <div key={`${file.name}-${index}`} className="flex flex-wrap items-center gap-3 rounded-lg border-2 border-ink bg-surface px-4 py-3 text-base font-medium text-ink shadow-sm">
+                      <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
+                        {file.name}
+                        <span className="block text-sm text-ink-muted">{[file.type, file.size].filter(Boolean).join(' • ')}</span>
+                      </span>
+                      {/* Sample rows only describe a file; there is nothing to download for them. */}
+                      {file.url && (file.kind === 'link' ? (
+                        <a href={externalUrl(file.url)} target="_blank" rel="noopener noreferrer" className="cf-btn h-11 flex-none px-4 text-[15px]">
+                          Abrir link
+                          <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+                          <span className="sr-only"> {file.name} (abre em nova aba)</span>
+                        </a>
+                      ) : (
+                        <a href={file.url} download={file.name} className="cf-btn h-11 flex-none px-4 text-[15px]">
+                          <Download className="h-4 w-4" aria-hidden="true" />
+                          Baixar
+                          <span className="sr-only"> {file.name}</span>
+                        </a>
+                      ))}
                     </div>
                   ))}
                 </div>
@@ -709,7 +715,7 @@ function ProjectDetailPage({ projects, users, favoritedProjectIds, onToggleFavor
                 ))}
               </div>
               {project.url && (
-                <a href={project.url} target="_blank" rel="noreferrer" className="cf-btn primary w-full">
+                <a href={externalUrl(project.url)} target="_blank" rel="noopener noreferrer" className="cf-btn primary w-full">
                   Abrir repositório
                   <ArrowUpRight className="h-[18px] w-[18px]" aria-hidden="true" />
                 </a>
@@ -753,16 +759,17 @@ function EventsPage({ events, registeredEventIds, onToggleRegistration }: {
   );
 }
 
-function EventDetailPage({ events, registeredEventIds, onToggleRegistration }: {
+function EventDetailPage({ events, registeredEventIds, onToggleRegistration, loading }: {
   events: Event[];
+  loading: boolean;
   registeredEventIds: string[];
   onToggleRegistration: (eventId: string) => void;
 }) {
   const { id } = useParams();
-  const event = events.find((item) => item.id === id) ?? events[0];
+  const event = events.find((item) => item.id === id);
 
   if (!event) {
-    return <NotFoundPage />;
+    return loading ? <LoadingPage /> : <NotFoundPage />;
   }
 
   return (
@@ -837,8 +844,9 @@ function EventDetailPage({ events, registeredEventIds, onToggleRegistration }: {
   );
 }
 
-function PeoplePage({ users, connectedUserIds, onToggleConnect, initialSearch }: {
+function PeoplePage({ users, currentUserId, connectedUserIds, onToggleConnect, initialSearch }: {
   users: User[];
+  currentUserId: string;
   connectedUserIds: string[];
   onToggleConnect: (userId: string) => void;
   initialSearch: string;
@@ -847,7 +855,7 @@ function PeoplePage({ users, connectedUserIds, onToggleConnect, initialSearch }:
 
   const filteredUsers = useMemo(() => {
     return users.filter((user) => {
-      const target = `${user.name} ${user.focus} ${user.institution}`.toLowerCase();
+      const target = `${user.name} ${user.focus} ${user.course ?? ''} ${user.institution}`.toLowerCase();
       return target.includes(searchTerm.toLowerCase());
     });
   }, [searchTerm, users]);
@@ -867,11 +875,19 @@ function PeoplePage({ users, connectedUserIds, onToggleConnect, initialSearch }:
         </div>
       </section>
 
-      <main className="mx-auto grid max-w-[1344px] grid-cols-1 gap-6 px-4 pb-16 pt-10 sm:px-6 md:grid-cols-2 md:px-12 md:pt-14 xl:grid-cols-3">
+      <main className="mx-auto grid max-w-[1344px] grid-cols-1 gap-6 px-4 [&>*]:min-w-0 pb-16 pt-10 sm:px-6 md:grid-cols-2 md:px-12 md:pt-14 xl:grid-cols-3">
         {filteredUsers.map((user, index) => (
-          <UserCard key={user.id} user={user} index={index} isConnected={connectedUserIds.includes(user.id)} onToggleConnect={() => onToggleConnect(user.id)} />
+          <UserCard key={user.id} user={user} index={index} isSelf={user.id === currentUserId} isConnected={connectedUserIds.includes(user.id)} onToggleConnect={() => onToggleConnect(user.id)} />
         ))}
       </main>
+    </div>
+  );
+}
+
+function LoadingPage() {
+  return (
+    <div className="mx-auto max-w-[1344px] px-4 py-16 sm:px-6 md:px-12">
+      <p role="status" className="text-ink-muted">Carregando...</p>
     </div>
   );
 }

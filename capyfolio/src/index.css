@@ -4,6 +4,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Selected text is ink on gold everywhere (7.8:1). It stays readable on paper, white and navy
+   surfaces; the old navy-on-navy-tint selection made cream text on navy disappear. */
+::selection {
+  background: var(--gold);
+  color: var(--ink);
+}
+
 html {
   scroll-behavior: smooth;
   overflow-x: hidden;

@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
-import type { Project } from '../types';
+import type { Json } from '../lib/database.types';
+import type { Project, ProjectFile } from '../types';
 import { check } from './errors';
 import { toProject } from './mappers';
 
@@ -17,6 +18,8 @@ export type NewProject = {
   tags: string[];
   url?: string;
   mediaUrl?: string | null;
+  /** Attachments: uploaded files and links (max 3). */
+  files?: ProjectFile[];
 };
 
 export const projectService = {
@@ -57,6 +60,7 @@ export const projectService = {
           tags: input.tags,
           url: input.url || null,
           media_url: input.mediaUrl ?? null,
+          files: (input.files ?? []) as unknown as Json,
         })
         .select('id')
         .single(),

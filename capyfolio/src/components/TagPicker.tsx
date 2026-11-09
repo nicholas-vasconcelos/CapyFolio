@@ -18,13 +18,16 @@ type Option = { kind: 'tag'; value: string } | { kind: 'custom'; value: string }
  * With a `course`, the course's common tags show as one-click chips and rank first in search;
  * every other tag stays searchable, and a tag outside the catalog can still be added.
  */
-export function TagPicker({ id, label, value, onChange, course }: {
+export function TagPicker({ id, label, value, onChange, course, allowCustom = true, max = MAX_TAGS }: {
   id: string;
   label: string;
   value: string[];
   onChange: (tags: string[]) => void;
   /** Free-text course name; picks the suggestions and ranking. */
   course?: string;
+  /** False: only tags from the catalog can be picked (projects). */
+  allowCustom?: boolean;
+  max?: number;
 }) {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
@@ -33,7 +36,7 @@ export function TagPicker({ id, label, value, onChange, course }: {
   const listId = useId();
   const hintId = useId();
   const chipsLabelId = useId();
-  const atLimit = value.length >= MAX_TAGS;
+  const atLimit = value.length >= max;
 
   const profile = useMemo(() => courseProfileFor(course), [course]);
   // Chips keep their place when picked (shown as pressed), so the row does not jump around.
@@ -47,9 +50,9 @@ export function TagPicker({ id, label, value, onChange, course }: {
     const typed = query.trim().slice(0, MAX_TAG_LENGTH);
     const known = matches.some((option) => normalizeTag(option.value) === normalizeTag(typed));
     const taken = value.some((tag) => normalizeTag(tag) === normalizeTag(typed));
-    if (!known && !taken) matches.push({ kind: 'custom', value: canonicalTag(typed) });
+    if (allowCustom && !known && !taken) matches.push({ kind: 'custom', value: canonicalTag(typed) });
     return matches;
-  }, [query, value, profile]);
+  }, [query, value, profile, allowCustom]);
 
   const add = (tag: string) => {
     if (atLimit || isPicked(tag)) return;
@@ -206,7 +209,7 @@ export function TagPicker({ id, label, value, onChange, course }: {
         </div>
 
         <div id={hintId} className="text-sm text-ink-muted" aria-live="polite">
-          {value.length}/{MAX_TAGS} tags. Use as setas para navegar e Enter para adicionar.
+          {value.length}/{max} tags. Use as setas para navegar e Enter para adicionar.{allowCustom ? '' : ' Só tags da lista são aceitas.'}
         </div>
       </div>
     </div>

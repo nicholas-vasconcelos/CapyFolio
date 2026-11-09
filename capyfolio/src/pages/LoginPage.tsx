@@ -4,6 +4,7 @@ import { AlertCircle, Eye, EyeOff, MailCheck, MessageSquare, Search, Share2 } fr
 import capyMascot from '../assets/capy-mascot.png';
 import { CapyWordmark } from '../components/CapyWordmark';
 import { authService } from '../services/authService';
+import { setRememberSession } from '../lib/supabase';
 
 /** `onLogin` resolves to `true` when signed in, otherwise to the pt-BR error message to show. */
 export function LoginPage({ onLogin }: { onLogin: (email: string, password: string) => Promise<true | string> }) {
@@ -15,12 +16,15 @@ export function LoginPage({ onLogin }: { onLogin: (email: string, password: stri
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [remember, setRemember] = useState(true);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError('');
     setNotice('');
     setIsSubmitting(true);
+    // Decides where the new session is stored (see lib/supabase), so it must run before signing in.
+    setRememberSession(remember);
     const result = await onLogin(email.trim(), password);
     setIsSubmitting(false);
     if (result !== true) {
@@ -56,14 +60,19 @@ export function LoginPage({ onLogin }: { onLogin: (email: string, password: stri
 
   return (
     <div className="min-h-screen bg-paper font-sans text-ink">
-      <div className="flex min-h-[900px] flex-wrap bg-paper">
-        <section className="relative flex min-w-0 flex-[1.1_1_560px] flex-col gap-10 overflow-hidden bg-navy bg-[radial-gradient(var(--dot-grid)_1.5px,transparent_1.5px)] bg-[size:26px_26px] px-8 py-12 text-on-navy sm:px-12 lg:px-16">
-          <div className="flex items-center gap-3">
-            <CapyWordmark showMascot={false} size="lg" onNavy />
+      {/* Phones and tablets get the form first; the hero follows it. Side by side from lg. */}
+      <div className="flex flex-col bg-paper lg:min-h-dvh lg:flex-row">
+        <section className="relative order-2 flex min-w-0 flex-[1.1_1_0%] flex-col gap-10 overflow-hidden lg:justify-center lg:gap-[clamp(24px,4.5vh,48px)] bg-navy bg-[radial-gradient(var(--dot-grid)_1.5px,transparent_1.5px)] bg-[size:26px_26px] px-8 py-12 text-on-navy sm:px-12 lg:px-16 lg:py-10">
+          {/* The logo image is for light grounds only (DESIGN.md), so on navy it sits on a paper plate
+              with an ink outline and a gold hard shadow, like the mascot disc. */}
+          <div className="hidden lg:flex">
+            <span className="inline-flex items-center rounded-2xl border-2 border-ink bg-paper px-4 py-2.5 shadow-[4px_4px_0_var(--gold)]">
+              <CapyWordmark size="md" />
+            </span>
           </div>
 
           <div className="flex w-full max-w-[690px] flex-col gap-6">
-            <h1 className="m-0 max-w-[600px] font-display text-[clamp(3.25rem,5vw,5rem)] font-extrabold leading-[0.96] tracking-[-0.035em] text-on-navy [text-wrap:balance]">
+            <h1 className="m-0 max-w-[600px] font-display text-[clamp(2.75rem,min(5vw,8vh),5rem)] font-extrabold leading-[0.96] tracking-[-0.035em] text-on-navy [text-wrap:balance]">
               Conecte-se ao universo acadêmico.
             </h1>
             <p className="m-0 max-w-[460px] text-[19px] leading-[1.55] text-on-navy-muted">
@@ -71,6 +80,9 @@ export function LoginPage({ onLogin }: { onLogin: (email: string, password: stri
             </p>
           </div>
 
+          {/* Feature cards and mascot share a row on wide screens, so the capybara sits beside the cards
+              instead of being pinned to the bottom corner; its size follows the viewport. */}
+          <div className="flex flex-col items-center gap-8 xl:flex-row xl:items-center xl:justify-between xl:gap-6">
           <div className="relative z-10 flex w-full max-w-[440px] flex-col gap-3.5">
             <div className="cf-feature">
               <span className="ic"><Search className="h-[22px] w-[22px] text-ink" aria-hidden="true" /></span>
@@ -88,7 +100,7 @@ export function LoginPage({ onLogin }: { onLogin: (email: string, password: stri
               </div>
             </div>
 
-            <div className="cf-feature tint">
+            <div className="cf-feature">
               <span className="ic"><MessageSquare className="h-[22px] w-[22px] text-ink" aria-hidden="true" /></span>
               <div>
                 <strong>Conecte-se</strong>
@@ -97,17 +109,22 @@ export function LoginPage({ onLogin }: { onLogin: (email: string, password: stri
             </div>
           </div>
 
-          <div className="cf-disc pointer-events-none relative z-20 h-[220px] w-[220px] self-center lg:absolute lg:bottom-10 lg:right-6 lg:h-[300px] lg:w-[300px]">
-            <img src={capyMascot} alt="" />
+          <div className="pointer-events-none flex flex-none flex-col items-center">
+            <div className="cf-disc relative z-20 h-[220px] w-[220px] lg:h-[clamp(180px,min(22vw,28vh),340px)] lg:w-[clamp(180px,min(22vw,28vh),340px)]">
+              <img src={capyMascot} alt="" />
+            </div>
+            <span className="cf-sticker cf-pop relative z-30 -mt-8">
+              Grandes ideias também nascem na universidade.
+            </span>
           </div>
-
-          <span className="cf-sticker cf-pop relative z-30 -mt-20 self-center lg:absolute lg:bottom-5 lg:right-4 lg:mt-0">
-            Grandes ideias também nascem na universidade.
-          </span>
+          </div>
         </section>
 
-        <section className="flex min-w-0 flex-[1_1_440px] items-center justify-center px-8 py-14 sm:px-8 lg:px-8">
-          <div className="cf-card green block w-full max-w-[460px] p-8 sm:p-10">
+        <section className="order-1 flex min-w-0 flex-[1_1_0%] flex-col items-center justify-center gap-6 px-4 py-8 sm:px-8 lg:order-2 lg:py-8">
+          <div className="w-full max-w-[460px] lg:hidden">
+            <CapyWordmark size="md" />
+          </div>
+          <div className="cf-card green block w-full max-w-[460px] p-6 sm:p-10">
             <div className="mb-6 flex flex-col gap-2">
               <h2 className="m-0 font-display text-[34px] font-extrabold leading-[1.05] tracking-[-0.025em] text-navy">Entrar na sua conta</h2>
               <p className="m-0 text-[16px] leading-[1.5] text-ink-muted">
@@ -147,8 +164,8 @@ export function LoginPage({ onLogin }: { onLogin: (email: string, password: stri
 
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <label className="cf-check text-[15px]">
-                  <input type="checkbox" />
-                  Lembrar de mim
+                  <input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} />
+                  Manter conectado
                 </label>
                 <button type="button" onClick={handleForgotPassword} className="cf-link text-[15px] hover:underline">Esqueceu sua senha?</button>
               </div>

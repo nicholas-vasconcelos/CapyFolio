@@ -89,6 +89,8 @@ export function toUser(row: ProfileRow, email?: string): User {
     focus: row.focus ?? '',
     institution: row.institution ?? '',
     shortInstitution: str(row.short_institution),
+    educationLevel: str(row.education_level),
+    educationStatus: str(row.education_status),
     course: str(row.course),
     period: str(row.period),
     location: str(row.location),
@@ -114,6 +116,8 @@ export function toProfileUpdate(user: User): ProfileUpdate {
     focus: user.focus,
     institution: user.institution,
     short_institution: user.shortInstitution ?? null,
+    // Only sent when known, so profiles without an answer never touch these columns.
+    ...(user.educationLevel !== undefined ? { education_level: user.educationLevel || null, education_status: user.educationStatus || null } : {}),
     course: user.course ?? null,
     period: user.period ?? null,
     location: user.location ?? null,

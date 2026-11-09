@@ -8,6 +8,9 @@ export type RegisterInput = {
   name: string;
   email: string;
   password: string;
+  /** EducationLevel / EducationStatus keys from lib/profileOptions. */
+  educationLevel: string;
+  educationStatus: string | null;
   institution: string;
   course: string;
   period: string;
@@ -54,6 +57,8 @@ export const authService = {
         emailRedirectTo: redirectUrl('/login'),
         data: {
           name: data.name,
+          education_level: data.educationLevel,
+          education_status: data.educationStatus,
           institution: data.institution,
           course: data.course,
           period: data.period,

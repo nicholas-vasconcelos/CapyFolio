@@ -193,13 +193,13 @@ export function ProfileCore({ user, isOwnProfile, isConnected, onToggleConnect, 
                 <img
                   src={user.avatar}
                   alt={user.name}
-                  className="h-[200px] w-[200px] flex-none rounded-4xl border-[3px] border-paper object-cover shadow-photo sm:h-[240px] sm:w-[240px] md:h-[280px] md:w-[280px]"
+                  className="h-[200px] w-[200px] flex-none rounded-4xl border-[3px] border-ink object-cover shadow-photo sm:h-[240px] sm:w-[240px] md:h-[280px] md:w-[280px]"
                 />
               ) : (
                 // New accounts have no photo yet: show initials instead of a broken image.
                 <span
                   aria-hidden="true"
-                  className="flex h-[200px] w-[200px] flex-none select-none items-center justify-center rounded-4xl border-[3px] border-paper bg-paper font-display text-[72px] font-extrabold tracking-[-0.04em] text-navy shadow-photo sm:h-[240px] sm:w-[240px] md:h-[280px] md:w-[280px] md:text-[96px]"
+                  className="flex h-[200px] w-[200px] flex-none select-none items-center justify-center rounded-4xl border-[3px] border-ink bg-paper font-display text-[72px] font-extrabold tracking-[-0.04em] text-navy shadow-photo sm:h-[240px] sm:w-[240px] md:h-[280px] md:w-[280px] md:text-[96px]"
                 >
                   {user.name.split(' ').filter(Boolean).map((part) => part[0]).slice(0, 2).join('').toUpperCase()}
                 </span>

@@ -5,6 +5,10 @@ export interface User {
   focus: string;
   institution: string;
   shortInstitution?: string;
+  /** EducationLevel key (lib/profileOptions), e.g. 'bachelor'. */
+  educationLevel?: string;
+  /** EducationStatus key: 'in_progress' or 'completed'. */
+  educationStatus?: string;
   course?: string;
   period?: string;
   location?: string;
@@ -23,9 +27,13 @@ export interface User {
 }
 
 export interface ProjectFile {
+  /** 'file': uploaded to storage; 'link': an external page. Older sample rows have neither kind nor url. */
+  kind?: 'file' | 'link';
   name: string;
+  /** Readable size ("2,4 MB"); empty for links. */
   size: string;
   type: string;
+  url?: string;
 }
 
 export interface Speaker {

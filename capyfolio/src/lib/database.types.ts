@@ -395,7 +395,10 @@ export type Database = {
           claimed: boolean
           connections_base: number
           course: string | null
+          education_level: string | null
+          education_status: string | null
           created_at: string
+          email_confirmed: boolean
           featured_project_id: string | null
           focus: string | null
           github: string | null
@@ -422,7 +425,10 @@ export type Database = {
           claimed?: boolean
           connections_base?: number
           course?: string | null
+          education_level?: string | null
+          education_status?: string | null
           created_at?: string
+          email_confirmed?: boolean
           featured_project_id?: string | null
           focus?: string | null
           github?: string | null
@@ -449,7 +455,10 @@ export type Database = {
           claimed?: boolean
           connections_base?: number
           course?: string | null
+          education_level?: string | null
+          education_status?: string | null
           created_at?: string
+          email_confirmed?: boolean
           featured_project_id?: string | null
           focus?: string | null
           github?: string | null
@@ -843,6 +852,8 @@ export type Database = {
           bio: string | null
           connections: number | null
           course: string | null
+          education_level: string | null
+          education_status: string | null
           created_at: string | null
           featured_project_id: string | null
           focus: string | null
@@ -868,6 +879,8 @@ export type Database = {
           bio?: string | null
           connections?: never
           course?: string | null
+          education_level?: string | null
+          education_status?: string | null
           created_at?: string | null
           featured_project_id?: string | null
           focus?: string | null
@@ -893,6 +906,8 @@ export type Database = {
           bio?: string | null
           connections?: never
           course?: string | null
+          education_level?: string | null
+          education_status?: string | null
           created_at?: string | null
           featured_project_id?: string | null
           focus?: string | null

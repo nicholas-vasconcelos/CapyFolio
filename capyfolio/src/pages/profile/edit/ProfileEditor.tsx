@@ -10,7 +10,9 @@ import { EditBar } from './EditBar';
 import { useLayoutEditor } from './useLayoutEditor';
 import { WidgetCatalog } from './WidgetCatalog';
 import { WidgetControls } from './WidgetControls';
+import { AccountSettingsDialog } from './AccountSettingsDialog';
 import { t } from '../../../i18n';
+import { TEXT_LIMITS, validateText } from '../../../lib/contentRules';
 import { uploadImage } from '../../../lib/storage';
 import { randomDefaultAvatar } from '../../../lib/defaultAvatars';
 
@@ -33,6 +35,7 @@ export function ProfileEditor({ user, projects, initialLayout, onUpdateUser, onO
   const editor = useLayoutEditor({ user, projects, initialLayout, onUpdateUser, announce });
   const { showToast } = useToast();
   const [previewing, setPreviewing] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
   const [catalog, setCatalog] = useState<'grid' | 'hero' | null>(null);
   const { draft, dirty } = editor;
 
@@ -95,8 +98,19 @@ export function ProfileEditor({ user, projects, initialLayout, onUpdateUser, onO
   };
 
   const save = async () => {
-    await editor.save();
-    showToast(t.editor.saved);
+    // "Texto livre" is shown to every visitor, so it gets the same content check as posts.
+    for (const widget of [draft.hero, ...draft.widgets]) {
+      if (widget?.type !== 'freeText') continue;
+      const problem =
+        validateText(String(widget.config.title ?? ''), t.widgets.types.freeText.label, TEXT_LIMITS.freeTextTitle) ??
+        validateText(String(widget.config.text ?? ''), t.widgets.types.freeText.label, TEXT_LIMITS.freeTextBody);
+      if (problem) {
+        showToast(problem);
+        announce(problem);
+        return;
+      }
+    }
+    if (await editor.save()) showToast(t.editor.saved);
   };
 
   const discard = () => {
@@ -194,7 +208,20 @@ export function ProfileEditor({ user, projects, initialLayout, onUpdateUser, onO
           setPreviewing(!previewing);
         }}
         onExit={exit}
+        onOpenAccount={() => setAccountOpen(true)}
       />
+
+      {accountOpen && (
+        <AccountSettingsDialog
+          user={user}
+          onClose={() => setAccountOpen(false)}
+          onSave={async (next) => {
+            await onUpdateUser(next);
+            announce(t.editor.accountSaved);
+            showToast(t.editor.accountSaved);
+          }}
+        />
+      )}
 
       {catalog && (
         <WidgetCatalog

@@ -5,6 +5,18 @@
  */
 
 export const ptBR = {
+  validation: {
+    required: '{field}: preencha este campo.',
+    tooShort: '{field}: escreva pelo menos {n} caracteres.',
+    tooLong: '{field}: use no máximo {n} caracteres.',
+    tooManyWords: '{field}: use no máximo {n} palavras.',
+    offensive: '{field}: o texto tem palavras ofensivas ou impróprias. Revise antes de publicar.',
+    link: '{field}: links não são permitidos aqui.',
+    spam: '{field}: o texto parece aleatório ou está todo em maiúsculas. Revise antes de publicar.',
+    invalidUrl: '{field}: informe um endereço válido, como https://github.com/seu-usuario.',
+    blockedByServer: 'O conteúdo foi recusado por conter termos impróprios. Revise o texto.',
+  },
+
   profile: {
     lockNote: 'Parte fixa do perfil',
     customize: 'Personalizar perfil',
@@ -181,6 +193,8 @@ export const ptBR = {
     catalogAdd: 'Adicionar',
     tooBigForHero: 'Este widget é grande demais para o topo do perfil.',
     barLabel: 'Modo de personalização',
+    account: 'Dados da conta',
+    accountSaved: 'Dados da conta atualizados.',
     unsaved: 'Alterações não salvas',
     noChanges: 'Nenhuma alteração pendente',
     undo: 'Desfazer',

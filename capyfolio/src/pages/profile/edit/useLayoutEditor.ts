@@ -99,7 +99,8 @@ export function useLayoutEditor({ user, projects, initialLayout, onUpdateUser, a
       announce(t.announce.discarded);
     },
 
-    save: async () => {
+    /** True when the layout was stored. */
+    save: async (): Promise<boolean> => {
       const clean = sanitizeLayout(draft, ctx);
       const featuredProjectId = featuredProjectIdFromLayout(clean) ?? user.featuredProjectId ?? null;
       setSaving(true);
@@ -107,8 +108,10 @@ export function useLayoutEditor({ user, projects, initialLayout, onUpdateUser, a
         await onUpdateUser({ ...user, profileLayout: clean, featuredProjectId });
         dispatch({ type: 'saved', layout: clean });
         announce(t.editor.saved);
+        return true;
       } catch {
         // onUpdateUser already rolled back and showed an error toast; keep the draft so nothing is lost.
+        return false;
       } finally {
         setSaving(false);
       }
