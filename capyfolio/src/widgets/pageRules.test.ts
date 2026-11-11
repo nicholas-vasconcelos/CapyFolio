@@ -4,7 +4,7 @@ import { layoutContextFor } from './layout';
 import { galleryProjects, isEmptyOnPage } from './pageRules';
 
 const project = (id: string, status: string): Project => ({
-  id, title: id, shortDescription: '', summary: '', keyResults: [], methodology: '', files: [],
+  id, title: id, shortDescription: '', summary: '', keyResults: [], methodology: '', files: [], images: [],
   authorIds: ['u1'], authorNames: '', institution: '', area: '', type: '', status, date: '', period: '', tags: [],
 });
 

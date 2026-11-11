@@ -1,3 +1,4 @@
+import { isDemoMode } from '../lib/demo';
 // Per-account id lists: favorites, event registrations and connections. RLS limits every read and write to rows
 // owned by the signed-in profile, so `profileId` must be that profile's id.
 import { supabase } from '../lib/supabase';
@@ -13,6 +14,7 @@ export const favoriteService = {
   },
 
   async set(profileId: string, projectId: string, on: boolean): Promise<void> {
+    if (isDemoMode()) return;
     if (on) {
       check(
         await supabase
@@ -39,6 +41,7 @@ export const registrationService = {
   },
 
   async set(profileId: string, eventId: string, on: boolean): Promise<void> {
+    if (isDemoMode()) return;
     if (on) {
       check(
         await supabase
@@ -65,6 +68,7 @@ export const connectionService = {
   },
 
   async set(profileId: string, targetId: string, on: boolean): Promise<void> {
+    if (isDemoMode()) return;
     if (on) {
       check(
         await supabase

@@ -1,4 +1,4 @@
-import { ChevronRight, LogOut, Menu, Plus, Search, X } from 'lucide-react';
+import { ChevronRight, LogOut, Menu, PlayCircle, Plus, Search, X } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import type { User } from '../types';
@@ -7,6 +7,7 @@ import { CapyWordmark } from './CapyWordmark';
 
 export function Layout({
   currentUser,
+  isDemo = false,
   onOpenCreateModal,
   onLogout,
   globalSearchQuery,
@@ -15,6 +16,8 @@ export function Layout({
   children,
 }: {
   currentUser: User;
+  /** Signed in as the demo account: shows a strip saying nothing is saved. */
+  isDemo?: boolean;
   onOpenCreateModal: () => void;
   onLogout: () => void;
   globalSearchQuery: string;
@@ -26,6 +29,7 @@ export function Layout({
   // Busca has its own large search field, so the header one is hidden there.
   const showSearch = useLocation().pathname !== '/busca';
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isDemoNoteHidden, setIsDemoNoteHidden] = useState(false);
   // Header search: an icon button that expands into a field.
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -200,6 +204,18 @@ export function Layout({
               </button>
             </div>
           </aside>
+        </div>
+      )}
+
+      {isDemo && !isDemoNoteHidden && (
+        <div role="status" className="border-b-2 border-ink bg-gold-tint">
+          <div className="mx-auto flex max-w-[1344px] items-center gap-3 px-4 py-1.5 text-[15px] text-ink sm:px-6 xl:px-12">
+            <PlayCircle className="h-5 w-5 flex-none" aria-hidden="true" />
+            <p className="m-0 min-w-0 flex-1"><strong className="font-semibold">Conta de demonstração.</strong> Teste tudo à vontade: nada do que você fizer será salvo.</p>
+            <button type="button" onClick={() => setIsDemoNoteHidden(true)} aria-label="Fechar aviso" className="flex h-11 w-11 flex-none items-center justify-center rounded-sm text-ink hover:bg-gold/30">
+              <X className="h-5 w-5" aria-hidden="true" />
+            </button>
+          </div>
         </div>
       )}
 

@@ -5,13 +5,17 @@ import type { User } from '../types';
 import { supabase } from '../lib/supabase';
 import { authService, type RegisterInput, type RegisterResult } from '../services/authService';
 import { CapyWordmark } from '../components/CapyWordmark';
+import { isDemoMode, setDemoMode } from '../lib/demo';
 
 type AuthContextType = {
   currentUser: User | null;
   isAuthenticated: boolean;
+  /** Signed in as the shared demo account: changes are shown but never saved. */
+  isDemo: boolean;
   /** True while Supabase is handling a password-recovery link. */
   isPasswordRecovery: boolean;
   login: (email: string, password: string) => Promise<User | null>;
+  loginAsDemo: () => Promise<User | null>;
   register: (data: RegisterInput) => Promise<RegisterResult>;
   logout: () => Promise<void>;
   /** Mirrors a saved change to the signed-in profile without another round trip. */
@@ -25,14 +29,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUserState] = useState<User | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
+  const [isDemo, setIsDemo] = useState(false);
 
   useEffect(() => {
     let active = true;
 
     const load = async (session: Session | null) => {
       try {
+        if (!session) setDemoMode(false);
         const user = session ? await authService.profileFor(session.user) : null;
-        if (active) setCurrentUserState(user);
+        if (active) {
+          setCurrentUserState(user);
+          setIsDemo(isDemoMode());
+        }
       } catch {
         if (active) setCurrentUserState(null);
       } finally {
@@ -57,6 +66,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (email: string, password: string) => {
     const user = await authService.login(email, password);
     setCurrentUserState(user);
+    setIsDemo(isDemoMode());
+    return user;
+  }, []);
+
+  const loginAsDemo = useCallback(async () => {
+    const user = await authService.loginAsDemo();
+    setCurrentUserState(user);
+    setIsDemo(isDemoMode());
     return user;
   }, []);
 
@@ -69,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     await authService.logout();
     setCurrentUserState(null);
+    setIsDemo(false);
   }, []);
 
   const setCurrentUser = useCallback((user: User) => {
@@ -81,14 +99,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       currentUser,
       isAuthenticated: Boolean(currentUser),
+      isDemo,
       isPasswordRecovery,
       login,
+      loginAsDemo,
       register,
       logout,
       setCurrentUser,
       clearPasswordRecovery,
     }),
-    [currentUser, isPasswordRecovery, login, register, logout, setCurrentUser, clearPasswordRecovery],
+    [currentUser, isDemo, isPasswordRecovery, login, loginAsDemo, register, logout, setCurrentUser, clearPasswordRecovery],
   );
 
   if (!isReady) {

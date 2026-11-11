@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { uploadImage } from '../lib/storage';
 import type { User } from '../types';
 import { userService } from './userService';
+import { DEMO_EMAIL, DEMO_PASSWORD, isDemoAuthUser, setDemoMode } from '../lib/demo';
 
 export type RegisterInput = {
   name: string;
@@ -45,7 +46,13 @@ export const authService = {
       if (error.code === 'invalid_credentials' || error.status === 400) return null;
       throw error;
     }
+    setDemoMode(isDemoAuthUser(data.user));
     return authService.profileFor(data.user);
+  },
+
+  /** Signs in to the shared, read-only demo account. */
+  async loginAsDemo(): Promise<User | null> {
+    return authService.login(DEMO_EMAIL, DEMO_PASSWORD);
   },
 
   /** Signs up with profile metadata; the database trigger creates (or claims) the profile row. */
@@ -97,6 +104,7 @@ export const authService = {
   },
 
   async logout(): Promise<void> {
+    setDemoMode(false);
     await supabase.auth.signOut();
   },
 
@@ -118,6 +126,7 @@ export const authService = {
   },
 
   async profileFor(authUser: AuthUser): Promise<User | null> {
+    setDemoMode(isDemoAuthUser(authUser));
     return (await userService.getCurrent(authUser.email ?? undefined)) ?? null;
   },
 };

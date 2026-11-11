@@ -34,6 +34,7 @@ export const ptBR = {
     coursePlaceholder: '[Curso]',
     periodPlaceholder: '[Período]',
     skillsPlaceholder: '[Competências]',
+    heroColorSaved: 'Cor do portfólio atualizada.',
     bioFallback: 'Estudante com foco em projetos práticos, inovação e desenvolvimento de soluções digitais com impacto profissional real.',
     photo: {
       change: 'Trocar foto',

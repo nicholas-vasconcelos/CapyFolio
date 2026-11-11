@@ -1,6 +1,18 @@
 import { AlertCircle, ArrowRight, X } from 'lucide-react';
 import { useState } from 'react';
 import { TEXT_LIMITS, validateText } from '../lib/contentRules';
+import { PhotoPicker, usePickedPhotos } from './PhotoPicker';
+
+/** Up to four photos per post (posts_images_max in the database). */
+export const POST_MAX_PHOTOS = 4;
+
+export type NewPostSubmission = {
+  category: string;
+  content: string;
+  relatedProjectId?: string | null;
+  /** Picked photos; the caller uploads them before saving the post. */
+  photos?: File[];
+};
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
@@ -24,24 +36,29 @@ export function CreateContentModal({
 }: {
   defaultTab: 'project' | 'post';
   onClose: () => void;
-  onSubmitPost: (data: { category: string; content: string; relatedProjectId?: string | null }) => void;
+  /** Resolves true when the post was published (the caller closes the popup). */
+  onSubmitPost: (data: NewPostSubmission) => Promise<boolean>;
   /** Closes the popup and opens the new-project page. */
   onStartProject: () => void;
 }) {
   const [activeTab, setActiveTab] = useState<'project' | 'post'>(defaultTab || 'post');
   const [postDraft, setPostDraft] = useState({ category: 'Pesquisa Acadêmica', content: '' });
   const [error, setError] = useState<string | null>(null);
+  const [photos, setPhotos] = usePickedPhotos();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const submitPost = () => {
+  const submitPost = async () => {
     const message = validateText(postDraft.content, 'Conteúdo', TEXT_LIMITS.post);
     setError(message);
     if (message) return;
-    onSubmitPost({ category: postDraft.category, content: postDraft.content.trim() });
+    setIsSubmitting(true);
+    await onSubmitPost({ category: postDraft.category, content: postDraft.content.trim(), photos: photos.map((photo) => photo.file) });
+    setIsSubmitting(false);
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/35 p-3 backdrop-blur-[2px] sm:p-4">
-      <div className="w-full max-w-2xl overflow-hidden rounded-3xl border border-line bg-white shadow-[0_20px_60px_rgba(0,0,0,0.12)]">
+      <div className="max-h-[calc(100dvh-24px)] w-full max-w-2xl overflow-y-auto rounded-3xl border border-line bg-white shadow-[0_20px_60px_rgba(0,0,0,0.12)]">
         <div className="flex items-center justify-between border-b border-line px-4 py-4 sm:px-6">
           <div>
             <h3 className="text-lg font-bold text-navy">Publicar conteúdo</h3>
@@ -91,9 +108,10 @@ export function CreateContentModal({
               <textarea id="post-content" value={postDraft.content} onChange={(event) => setPostDraft((current) => ({ ...current, content: event.target.value }))} rows={6} maxLength={TEXT_LIMITS.post.maxChars} className="min-h-[44px] w-full rounded-lg border border-line-strong bg-white px-3.5 py-2.5 text-sm focus:border-navy focus:outline-none" placeholder="Compartilhe uma atualização, resultado ou oportunidade acadêmica..." />
               <FieldError message={error ?? undefined} />
             </div>
+            <PhotoPicker photos={photos} onChange={setPhotos} max={POST_MAX_PHOTOS} label="Fotos" hint="PNG, JPEG ou WebP, até 5 MB cada." />
             <div className="flex justify-end gap-3 pt-2">
               <button type="button" onClick={onClose} className="px-4 py-2.5 rounded-lg border border-line-strong text-sm font-medium text-gray-600 hover:bg-gray-50 cursor-pointer">Cancelar</button>
-              <button type="button" onClick={submitPost} className="min-h-[44px] rounded-lg bg-navy px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#162D49]">Publicar atualização</button>
+              <button type="button" onClick={() => void submitPost()} disabled={isSubmitting} className="cf-btn primary disabled:opacity-70">{isSubmitting ? 'Publicando...' : 'Publicar atualização'}</button>
             </div>
           </div>
         )}

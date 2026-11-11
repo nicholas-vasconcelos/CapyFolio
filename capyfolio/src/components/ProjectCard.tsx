@@ -6,7 +6,10 @@ import { SpatialMapProjectCover } from './SpatialMapProjectCover';
 
 export function ProjectCard({ project, author, isFavorited, onToggleFavorite }: { project: Project; author?: User; isFavorited?: boolean; onToggleFavorite?: () => void }) {
   // Covers without an image: flat green field with topographic rings and one icon in a tile.
-  const cover = project.visualType === 'spatial-map' ? <SpatialMapProjectCover /> : (
+  const photo = project.images[0] ?? project.media;
+  const cover = photo ? (
+    <img src={photo} alt="" loading="lazy" className="h-52 w-full rounded-lg border-2 border-ink object-cover sm:h-56" />
+  ) : project.visualType === 'spatial-map' ? <SpatialMapProjectCover /> : (
     <div className="relative flex h-52 w-full items-end overflow-hidden rounded-lg border-2 border-ink bg-brand-green p-4 sm:h-56">
       <svg viewBox="0 0 260 200" preserveAspectRatio="xMidYMid slice" className="absolute inset-0 h-full w-full stroke-green-tint opacity-60" fill="none" strokeWidth="2" aria-hidden="true">
         <ellipse cx="170" cy="80" rx="30" ry="22" />

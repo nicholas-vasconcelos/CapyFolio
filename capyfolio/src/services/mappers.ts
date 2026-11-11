@@ -105,6 +105,7 @@ export function toUser(row: ProfileRow, email?: string): User {
     lattes: row.lattes ?? '',
     connections: row.connections ?? 0,
     profileLayout: (row.profile_layout as unknown as ProfileLayout | null) ?? undefined,
+    heroColor: str(row.hero_color),
   };
 }
 
@@ -129,6 +130,7 @@ export function toProfileUpdate(user: User): ProfileUpdate {
     lattes: user.lattes ?? null,
     featured_project_id: user.featuredProjectId ?? null,
     profile_layout: (user.profileLayout ?? null) as unknown as Json,
+    hero_color: user.heroColor ?? null,
   };
 }
 
@@ -153,6 +155,7 @@ export function toProject(row: ProjectRow): Project {
     url: str(row.url),
     visualType: row.visual_type ?? 'standard',
     media: str(row.media_url),
+    images: row.images?.length ? row.images : row.media_url ? [row.media_url] : [],
     favorites: row.favorites ?? 0,
   };
 }
@@ -174,6 +177,7 @@ export function toEvent(row: EventRow): Event {
     speakers: list<Speaker>(row.speakers),
     schedule: list<ScheduleItem>(row.schedule),
     attendeesCount: row.attendees_count ?? 0,
+    cover: str(row.cover_url),
   };
 }
 
@@ -204,6 +208,7 @@ export function toPost(row: PostRow, comments: CommentRow[] = [], now?: Date): P
     relatedEventId: row.related_event_id,
     likes: row.likes ?? 0,
     likedByMe: Boolean(row.liked_by_me),
+    images: row.images ?? [],
     comments: comments.filter((comment) => comment.post_id === row.id).map((comment) => toComment(comment, now)),
   };
 }

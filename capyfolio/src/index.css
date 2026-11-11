@@ -69,6 +69,35 @@ a:focus-visible {
   border-bottom: var(--border-width) solid var(--ink);
 }
 
+/* Portfolio hero colours (lib/heroColors.ts). Navy is the default above.
+   Dark grounds keep the on-navy text; muted copy goes full on-navy on green, where
+   on-navy-muted would fall under 4.5:1. */
+.capy-hero-shell.hero-green { background-color: var(--green); }
+.capy-hero-shell.hero-green .text-on-navy-muted { color: var(--on-navy); }
+.capy-hero-shell.hero-ink { background-color: var(--ink); }
+.capy-hero-shell.hero-gold { background-color: var(--gold); }
+.capy-hero-shell.hero-green-tint { background-color: var(--green-tint); }
+.capy-hero-shell.hero-gold-tint { background-color: var(--gold-tint); }
+
+/* Light grounds: the hero's own text, outlines and buttons switch to ink (DESIGN.md: text on
+   gold is always ink). Only the hero chrome uses these on-navy classes; widgets have their own ground. */
+.capy-hero-shell.hero-light {
+  color: var(--ink);
+  background-image: radial-gradient(color-mix(in srgb, var(--ink) 12%, transparent) 1.5px, transparent 1.5px);
+}
+.capy-hero-shell.hero-light .text-on-navy { color: var(--ink); }
+.capy-hero-shell.hero-light .text-on-navy-muted { color: var(--ink-soft); }
+.capy-hero-shell.hero-light .text-gold-light { color: var(--navy); }
+.capy-hero-shell.hero-light .border-on-navy-muted { border-color: var(--ink-soft); }
+.capy-hero-shell.hero-light .border-on-navy { border-color: var(--ink); }
+.capy-hero-shell.hero-light .cf-btn.on-navy { color: var(--ink); border-color: var(--ink); box-shadow: var(--shadow-md); }
+.capy-hero-shell.hero-light .cf-btn.on-navy[aria-pressed='true'],
+.capy-hero-shell.hero-light .cf-btn.on-navy[aria-expanded='true'] { color: var(--navy); border-color: var(--navy); box-shadow: 4px 4px 0 var(--navy); }
+.capy-hero-shell.hero-light .cf-btn.cta.on-navy-cta { box-shadow: var(--shadow-md); }
+.capy-hero-shell.hero-light .cf-link.on-navy { color: var(--navy); }
+/* The gold photo shadow disappears on a gold ground. */
+.capy-hero-shell.hero-gold .shadow-photo { box-shadow: 10px 10px 0 var(--navy); }
+
 /* CapyFolio components, ported from design-system/components.css (demo-only .cf-stage rules omitted). */
 @layer components {
   .cf-hero { background-color: var(--navy); background-image: radial-gradient(var(--dot-grid) 1.5px, transparent 1.5px); background-size: var(--dot-pitch) var(--dot-pitch); color: var(--on-navy); }

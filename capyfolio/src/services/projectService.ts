@@ -3,6 +3,8 @@ import type { Json } from '../lib/database.types';
 import type { Project, ProjectFile } from '../types';
 import { check } from './errors';
 import { toProject } from './mappers';
+import { isDemoMode } from '../lib/demo';
+import { userService } from './userService';
 
 export type NewProject = {
   title: string;
@@ -18,6 +20,8 @@ export type NewProject = {
   tags: string[];
   url?: string;
   mediaUrl?: string | null;
+  /** Public URLs of up to three photos; the first is the cover. */
+  images?: string[];
   /** Attachments: uploaded files and links (max 3). */
   files?: ProjectFile[];
 };
@@ -42,6 +46,8 @@ export const projectService = {
 
   /** Creates a project owned by `authorId` (the signed-in profile) and lists them as its first author. */
   async create(input: NewProject, authorId: string): Promise<Project> {
+    if (isDemoMode()) return demoProject(input, authorId);
+    const images = input.images ?? [];
     const created = check(
       await supabase
         .from('projects')
@@ -59,7 +65,8 @@ export const projectService = {
           period: input.period,
           tags: input.tags,
           url: input.url || null,
-          media_url: input.mediaUrl ?? null,
+          media_url: input.mediaUrl ?? images[0] ?? null,
+          images,
           files: (input.files ?? []) as unknown as Json,
         })
         .select('id')
@@ -76,6 +83,7 @@ export const projectService = {
   },
 
   async update(project: Project): Promise<Project> {
+    if (isDemoMode()) return project;
     check(
       await supabase
         .from('projects')
@@ -92,7 +100,8 @@ export const projectService = {
           period: project.period,
           tags: project.tags,
           url: project.url || null,
-          media_url: project.media ?? null,
+          media_url: project.images[0] ?? project.media ?? null,
+          images: project.images,
         })
         .eq('id', project.id)
         .select('id')
@@ -103,6 +112,39 @@ export const projectService = {
   },
 
   async remove(id: string): Promise<void> {
+    if (isDemoMode()) return;
     check(await supabase.from('projects').delete().eq('id', id), 'projectService.remove');
   },
 };
+
+/** Demo account: the project exists only in the app's state. */
+async function demoProject(input: NewProject, authorId: string): Promise<Project> {
+  const author = await userService.getById(authorId);
+  const images = input.images ?? [];
+  return toProject({
+    id: crypto.randomUUID(),
+    created_by: authorId,
+    title: input.title,
+    short_description: input.shortDescription,
+    summary: input.summary,
+    key_results: input.keyResults,
+    methodology: input.methodology,
+    files: (input.files ?? []) as unknown as Json,
+    institution: input.institution,
+    area: input.area,
+    type: input.type,
+    status: input.status,
+    project_date: new Date().toISOString().slice(0, 10),
+    period: input.period,
+    tags: input.tags,
+    url: input.url || null,
+    visual_type: 'standard',
+    media_url: images[0] ?? null,
+    images,
+    is_sample: false,
+    created_at: new Date().toISOString(),
+    author_ids: [authorId],
+    author_names: author?.name ?? '',
+    favorites: 0,
+  });
+}

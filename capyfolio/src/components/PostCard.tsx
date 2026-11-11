@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import type { Post } from '../types';
 import { TEXT_LIMITS } from '../lib/contentRules';
 import { Avatar } from './Avatar';
+import { PhotoGrid } from './PhotoGrid';
 
 /** Comments shown on a post in the feed; the rest are on the post's own page. */
 export const FEED_COMMENT_LIMIT = 3;
@@ -46,6 +47,12 @@ export function PostCard({
       </div>
 
       <p className="mt-5 whitespace-pre-line text-[19px] leading-[1.6] text-ink [overflow-wrap:anywhere]">{post.content}</p>
+
+      {post.images.length > 0 && (
+        <div className="mt-5">
+          <PhotoGrid images={post.images} alt={`Publicação de ${post.authorName}`} />
+        </div>
+      )}
 
       <div className="mt-5 flex flex-wrap items-center gap-3">
         <button type="button" onClick={onToggleLike} aria-pressed={!!post.likedByMe} aria-label={`Curtir (${post.likes})`} className={`cf-counter ${post.likedByMe ? 'liked' : ''}`}>

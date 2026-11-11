@@ -2,12 +2,14 @@ import { supabase } from './supabase';
 import { imagePath, validateImage, type ImageBucket } from './imageRules';
 import { checkProjectFile, formatFileSize, projectFileType, PROJECT_FILE_TYPES } from './projectRules';
 import type { ProjectFile } from '../types';
+import { isDemoMode, localFileUrl } from './demo';
 
 export type { ImageBucket } from './imageRules';
 
 /** Uploads an image to a public bucket (`avatars` or `project-media`) and returns its public URL. */
 export async function uploadImage(bucket: ImageBucket, file: File): Promise<string> {
   validateImage(file);
+  if (isDemoMode()) return localFileUrl(file);
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) throw new Error('Entre na sua conta para enviar imagens.');
 
@@ -35,6 +37,10 @@ const FILE_EXTENSIONS: Record<string, string> = {
 export async function uploadProjectFile(file: File): Promise<ProjectFile> {
   const problem = checkProjectFile(file);
   if (problem) throw new Error(problem);
+  if (isDemoMode()) {
+    const type = projectFileType(file)!;
+    return { kind: 'file', name: file.name, size: formatFileSize(file.size), type: PROJECT_FILE_TYPES[type], url: localFileUrl(file) };
+  }
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) throw new Error('Entre na sua conta para enviar arquivos.');
 

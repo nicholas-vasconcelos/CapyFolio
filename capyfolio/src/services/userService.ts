@@ -2,6 +2,7 @@ import { supabase } from '../lib/supabase';
 import type { User } from '../types';
 import { check } from './errors';
 import { toProfileUpdate, toUser } from './mappers';
+import { isDemoMode } from '../lib/demo';
 
 export const userService = {
   /** People shown in the app. Organization profiles exist only as post authors. */
@@ -26,6 +27,8 @@ export const userService = {
 
   /** Updates the signed-in user's own profile (RLS rejects any other row). Returns the stored version. */
   async update(user: User): Promise<User> {
+    // Demo account: the change lives in the app's state until the page reloads.
+    if (isDemoMode()) return user;
     check(await supabase.from('profiles').update(toProfileUpdate(user)).eq('id', user.id).select('id').single(), 'userService.update');
     const saved = await userService.getById(user.id);
     return saved ? { ...saved, email: user.email } : user;

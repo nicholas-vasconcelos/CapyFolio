@@ -15,6 +15,8 @@ import { t } from '../../../i18n';
 import { TEXT_LIMITS, validateText } from '../../../lib/contentRules';
 import { uploadImage } from '../../../lib/storage';
 import { randomDefaultAvatar } from '../../../lib/defaultAvatars';
+import type { HeroColor } from '../../../lib/heroColors';
+import { HeroColorPicker } from './HeroColorPicker';
 
 const LEAVE_MESSAGE = t.editor.confirmLeave;
 
@@ -144,6 +146,18 @@ export function ProfileEditor({ user, projects, initialLayout, onUpdateUser, onO
     showToast(t.profile.tags.saved);
   };
 
+  // Part of the fixed profile, so it saves right away. The page shows the new colour at once
+  // (onUpdateUser updates the app state first) and rolls back with a toast if saving fails.
+  const changeHeroColor = async (heroColor: HeroColor) => {
+    if (heroColor === (user.heroColor ?? 'navy')) return;
+    try {
+      await onUpdateUser({ ...user, heroColor });
+      announce(t.profile.heroColorSaved);
+    } catch {
+      // onUpdateUser already showed an error toast.
+    }
+  };
+
   const savePhoto = async (avatar: string) => {
     try {
       await onUpdateUser({ ...user, avatar });
@@ -172,6 +186,7 @@ export function ProfileEditor({ user, projects, initialLayout, onUpdateUser, onO
         onChangePhoto={editing ? changePhoto : undefined}
         onUseDefaultPhoto={editing ? resetToDefaultPhoto : undefined}
         onChangeTags={editing ? changeTags : undefined}
+        heroColorPicker={editing ? <HeroColorPicker value={user.heroColor} onChange={(color) => void changeHeroColor(color)} /> : undefined}
         heroSlot={
           <HeroSlot
             layout={draft}

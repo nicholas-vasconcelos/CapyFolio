@@ -1,13 +1,17 @@
 import { supabase } from '../lib/supabase';
 import type { Comment, Post } from '../types';
 import { check } from './errors';
-import { toComment, toPost } from './mappers';
+import { toComment, toPost, type PostRow } from './mappers';
+import { isDemoMode } from '../lib/demo';
+import { userService } from './userService';
 
 export type NewPost = {
   category: string;
   content: string;
   relatedProjectId?: string | null;
   relatedEventId?: string | null;
+  /** Public URLs of photos already uploaded (max 4). */
+  images?: string[];
 };
 
 export const postService = {
@@ -32,6 +36,7 @@ export const postService = {
   },
 
   async create(input: NewPost, authorId: string): Promise<Post> {
+    if (isDemoMode()) return demoPost(input, authorId);
     const created = check(
       await supabase
         .from('posts')
@@ -41,6 +46,7 @@ export const postService = {
           content: input.content,
           related_project_id: input.relatedProjectId ?? null,
           related_event_id: input.relatedEventId ?? null,
+          images: input.images ?? [],
         })
         .select('id')
         .single(),
@@ -53,6 +59,7 @@ export const postService = {
 
   /** Adds or removes the signed-in profile's like. Idempotent in both directions. */
   async toggleLike(postId: string, profileId: string, liked: boolean): Promise<void> {
+    if (isDemoMode()) return;
     if (liked) {
       check(
         await supabase
@@ -66,6 +73,10 @@ export const postService = {
   },
 
   async addComment(postId: string, authorId: string, text: string): Promise<Comment> {
+    if (isDemoMode()) {
+      const author = await userService.getById(authorId);
+      return { id: crypto.randomUUID(), authorId, authorName: author?.name ?? '', authorInstitution: author?.shortInstitution || author?.institution || '', text, timestamp: 'Agora mesmo' };
+    }
     const created = check(
       await supabase.from('comments').insert({ post_id: postId, author_id: authorId, text }).select('id').single(),
       'postService.addComment',
@@ -74,3 +85,27 @@ export const postService = {
     return toComment(row);
   },
 };
+
+/** Demo account: the post exists only in the app's state. */
+async function demoPost(input: NewPost, authorId: string): Promise<Post> {
+  const author = await userService.getById(authorId);
+  const row: PostRow = {
+    id: crypto.randomUUID(),
+    author_id: authorId,
+    category: input.category,
+    content: input.content,
+    related_project_id: input.relatedProjectId ?? null,
+    related_event_id: input.relatedEventId ?? null,
+    is_sample: false,
+    created_at: new Date().toISOString(),
+    author_name: author?.name ?? null,
+    author_role: author?.role ?? ([author?.course, author?.period].filter(Boolean).join(' • ') || null),
+    author_institution: author?.shortInstitution || author?.institution || null,
+    author_avatar: author?.avatar ?? null,
+    is_organization: false,
+    likes: 0,
+    liked_by_me: false,
+    images: input.images ?? [],
+  };
+  return toPost(row);
+}

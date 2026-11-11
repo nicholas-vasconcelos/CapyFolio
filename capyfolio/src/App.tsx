@@ -7,8 +7,9 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastProvider, useToast } from './context/ToastContext';
 import { Layout } from './components/Layout';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { ScrollToTop } from './components/ScrollToTop';
 import { Toast } from './components/Toast';
-import { CreateContentModal } from './components/CreateContentModal';
+import { CreateContentModal, type NewPostSubmission } from './components/CreateContentModal';
 import { FEED_COMMENT_LIMIT, PostCard } from './components/PostCard';
 import { PostPage } from './pages/PostPage';
 import { PeoplePage } from './pages/PeoplePage';
@@ -16,6 +17,7 @@ import { ProjectsPage } from './pages/ProjectsPage';
 import { EventsPage } from './pages/EventsPage';
 import { SearchPage } from './pages/SearchPage';
 import { Avatar } from './components/Avatar';
+import { PhotoGrid } from './components/PhotoGrid';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { ProfilePage } from './pages/profile/ProfilePage';
@@ -27,7 +29,7 @@ import { connectionService, favoriteService, registrationService } from './servi
 import type { Event, Post, Project, ProjectFile, User } from './types';
 import { NewProjectPage } from './pages/NewProjectPage';
 import type { NewProjectSubmission } from './pages/NewProjectPage';
-import { uploadProjectFile } from './lib/storage';
+import { uploadImage, uploadProjectFile } from './lib/storage';
 import { TEXT_LIMITS, isBlockedContentError, validateText } from './lib/contentRules';
 import { externalUrl } from './lib/url';
 import { t } from './i18n';
@@ -38,7 +40,7 @@ const SAVE_ERROR_MESSAGE = 'Não foi possível salvar. Tente novamente.';
 const toggleId = (ids: string[], id: string, on: boolean) => (on ? (ids.includes(id) ? ids : [...ids, id]) : ids.filter((entry) => entry !== id));
 
 function AppShell() {
-  const { currentUser, isAuthenticated, isPasswordRecovery, login, register, logout, setCurrentUser } = useAuth();
+  const { currentUser, isAuthenticated, isPasswordRecovery, isDemo, login, loginAsDemo, register, logout, setCurrentUser } = useAuth();
   const {
     users, projects, events, posts, favoritedProjectIds, registeredEventIds, connectedUserIds, loading,
     setUsers, setProjects, setEvents, setPosts, setFavoritedProjectIds, setRegisteredEventIds, setConnectedUserIds,
@@ -61,6 +63,18 @@ function AppShell() {
       }
       console.error(cause);
       return 'Não foi possível entrar agora. Tente novamente.';
+    }
+  };
+
+  const handleDemoLogin = async (): Promise<true | string> => {
+    try {
+      const sessionUser = await loginAsDemo();
+      if (!sessionUser) return 'A conta de demonstração não está disponível agora.';
+      showToast('Você está na conta de demonstração. Explore à vontade: nada será salvo.');
+      return true;
+    } catch (cause) {
+      console.error(cause);
+      return 'Não foi possível abrir a demonstração. Tente novamente.';
     }
   };
 
@@ -208,27 +222,48 @@ function AppShell() {
     }
   };
 
-  const handleCreatePost = async (payload: { category: string; content: string; relatedProjectId?: string | null }) => {
-    if (!currentUser) return;
+  /** Uploads the post's photos, then saves it. False (after a toast) when something failed, so the popup keeps the draft. */
+  const handleCreatePost = async (payload: NewPostSubmission): Promise<boolean> => {
+    if (!currentUser) return false;
+
+    let images: string[];
+    try {
+      images = await Promise.all((payload.photos ?? []).map((file) => uploadImage('project-media', file)));
+    } catch (cause) {
+      console.error(cause);
+      showToast(cause instanceof Error && cause.message ? cause.message : 'Não foi possível enviar as fotos. Tente novamente.');
+      return false;
+    }
 
     try {
       const saved = await postService.create(
-        { category: payload.category, content: payload.content, relatedProjectId: payload.relatedProjectId ?? null },
+        { category: payload.category, content: payload.content, relatedProjectId: payload.relatedProjectId ?? null, images },
         currentUser.id,
       );
       setPosts((previous) => [saved, ...previous]);
       showToast('Publicação compartilhada com a comunidade.');
       setIsCreateModalOpen(false);
       navigate('/feed');
+      return true;
     } catch (cause) {
       console.error(cause);
       showToast(isBlockedContentError(cause) ? t.validation.blockedByServer : 'Não foi possível publicar. Tente novamente.');
+      return false;
     }
   };
 
   /** Uploads the attachments, saves the project and opens it. False (after a toast) when something failed. */
   const handleCreateProject = async (payload: NewProjectSubmission): Promise<boolean> => {
     if (!currentUser) return false;
+
+    let images: string[];
+    try {
+      images = await Promise.all(payload.photos.map((file) => uploadImage('project-media', file)));
+    } catch (cause) {
+      console.error(cause);
+      showToast(cause instanceof Error && cause.message ? cause.message : 'Não foi possível enviar as fotos. Tente novamente.');
+      return false;
+    }
 
     let files: ProjectFile[];
     try {
@@ -262,6 +297,7 @@ function AppShell() {
           tags: payload.tags,
           url: payload.url,
           files,
+          images,
         },
         currentUser.id,
       );
@@ -379,6 +415,7 @@ function AppShell() {
       {isAuthenticated && currentUser ? (
         <Layout
           currentUser={currentUser}
+          isDemo={isDemo}
           onOpenCreateModal={() => {
             setCreateModalDefaultTab('project');
             setIsCreateModalOpen(true);
@@ -395,6 +432,9 @@ function AppShell() {
         >
           <Routes>
             <Route path="/" element={<Navigate to="/feed" replace />} />
+            {/* Already signed in (e.g. after the demo button): the login and sign-up pages lead to the feed. */}
+            <Route path="/login" element={<Navigate to="/feed" replace />} />
+            <Route path="/cadastro" element={<Navigate to="/feed" replace />} />
             <Route path="/feed" element={<ProtectedRoute><FeedPage currentUser={currentUser} posts={posts} projects={projects} events={events} users={users} onOpenCreateModal={(tab) => { if (tab === 'project') openNewProject(); else { setCreateModalDefaultTab(tab); setIsCreateModalOpen(true); } }} onToggleLike={handleToggleLikePost} onAddComment={handleAddComment} /></ProtectedRoute>} />
             <Route path="/post/:id" element={<ProtectedRoute><PostPage currentUser={currentUser} posts={posts} loading={loading} onToggleLike={handleToggleLikePost} onAddComment={handleAddComment} /></ProtectedRoute>} />
             <Route path="/projetos" element={<ProtectedRoute><ProjectsPage loading={loading} projects={projects} users={users} favoritedProjectIds={favoritedProjectIds} onToggleFavorite={handleToggleFavoriteProject} /></ProtectedRoute>} />
@@ -413,7 +453,7 @@ function AppShell() {
       ) : (
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
+          <Route path="/login" element={<LoginPage onLogin={handleLogin} onDemoLogin={handleDemoLogin} />} />
           <Route path="/cadastro" element={<RegisterPage onRegister={handleRegister} />} />
           <Route path="/redefinir-senha" element={<ResetPasswordPage />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
@@ -484,11 +524,15 @@ function FeedPage({ currentUser, posts, projects, events, onOpenCreateModal, onT
             <div className="cf-card gold">
               <h2 className="font-display text-[26px] font-extrabold leading-[1.1] tracking-[-0.02em] text-navy">Projetos em destaque</h2>
               <div className="flex flex-col gap-3">
-                {projects.slice(0, 3).map((project) => (
+                {featuredProjects(projects).slice(0, 3).map((project) => (
                   <Link key={project.id} to={`/projeto/${project.id}`} className="cf-tile">
-                    <span className="ic bg-navy-tint text-ink" aria-hidden="true">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3 3 7 3s7-1.3 7-3v-6"/></svg>
-                    </span>
+                    {project.images[0] ? (
+                      <img src={project.images[0]} alt="" loading="lazy" className="h-11 w-11 flex-none rounded-sm border-2 border-ink object-cover" />
+                    ) : (
+                      <span className="ic bg-navy-tint text-ink" aria-hidden="true">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3 3 7 3s7-1.3 7-3v-6"/></svg>
+                      </span>
+                    )}
                     <span className="min-w-0 flex-1">
                       <strong className="truncate">{project.title}</strong>
                       <span className="meta">{project.area}</span>
@@ -501,11 +545,14 @@ function FeedPage({ currentUser, posts, projects, events, onOpenCreateModal, onT
             <div className="cf-card">
               <h2 className="font-display text-[26px] font-extrabold leading-[1.1] tracking-[-0.02em] text-navy">Próximos eventos</h2>
               <div className="flex flex-col gap-3">
-                {events.slice(0, 3).map((event) => (
-                  <div key={event.id} className="rounded-lg border-2 border-ink bg-surface px-4 py-3 shadow-sm">
-                    <strong className="block font-display text-[17px] font-bold leading-[1.25] text-ink">{event.title}</strong>
-                    <span className="mt-1 block text-sm text-ink-muted">{event.date} • {event.city}</span>
-                  </div>
+                {upcomingEvents(events).slice(0, 3).map((event) => (
+                  <Link key={event.id} to={`/evento/${event.id}`} className="flex items-center gap-3 rounded-lg border-2 border-ink bg-surface px-3 py-3 no-underline shadow-sm hover:bg-paper">
+                    {event.cover && <img src={event.cover} alt="" loading="lazy" className="h-12 w-12 flex-none rounded-sm border-2 border-ink object-cover" />}
+                    <span className="min-w-0">
+                      <strong className="block font-display text-[17px] font-bold leading-[1.25] text-ink">{event.title}</strong>
+                      <span className="mt-1 block text-sm text-ink-muted">{event.date} • {event.city}</span>
+                    </span>
+                  </Link>
                 ))}
               </div>
             </div>
@@ -545,6 +592,9 @@ function ProjectDetailPage({ projects, users, favoritedProjectIds, onToggleFavor
           </nav>
 
           <div className="flex flex-wrap gap-8 md:gap-10 items-start">
+            {project.images[0] ? (
+              <img src={project.images[0]} alt={project.title} className="h-[260px] w-[260px] flex-none rounded-2xl border-[3px] border-paper object-cover shadow-card-gold" />
+            ) : (
             <div className="relative h-[260px] w-[260px] flex-none overflow-hidden rounded-2xl border-[3px] border-paper bg-brand-green shadow-card-gold" aria-label={project.title}>
               <svg viewBox="0 0 260 260" className="absolute inset-0 h-full w-full stroke-green-tint opacity-60" fill="none" strokeWidth="2" aria-hidden="true">
                 <ellipse cx="140" cy="140" rx="30" ry="22" />
@@ -556,6 +606,7 @@ function ProjectDetailPage({ projects, users, favoritedProjectIds, onToggleFavor
                 <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3 3 7 3s7-1.3 7-3V6M5 12v6c0 1.7 3 3 7 3s7-1.3 7-3v-6"/></svg>
               </span>
             </div>
+            )}
 
             <div className="min-w-0 flex-[1_1_420px]">
               <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -587,6 +638,12 @@ function ProjectDetailPage({ projects, users, favoritedProjectIds, onToggleFavor
       </section>
 
       <main className="mx-auto max-w-[1344px] px-4 pb-16 pt-10 sm:px-6 md:px-12 md:pt-14">
+        {project.images.length > 0 && (
+          <section aria-label="Fotos do projeto" className="mb-10 rounded-3xl border-2 border-ink bg-surface p-3 shadow-card-green">
+            <PhotoGrid images={project.images} alt={project.title} size="lg" />
+          </section>
+        )}
+
         <div className="cf-tabs" role="tablist" aria-label="Seções do projeto">
           {tabs.map((tab) => (
             <button
@@ -738,7 +795,7 @@ function EventDetailPage({ events, registeredEventIds, onToggleRegistration, loa
         <div className="grid grid-cols-1 gap-8 xl:grid-cols-[1.4fr_0.6fr]">
           <div className="flex flex-col gap-8">
             <div className="overflow-hidden rounded-3xl border-2 border-ink bg-surface p-3 shadow-card-green">
-              <img src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1400&auto=format&fit=crop&q=80" alt={event.title} className="h-80 w-full rounded-lg object-cover" />
+              <img src={event.cover ?? 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1400&auto=format&fit=crop&q=80'} alt={event.title} className="h-80 w-full rounded-lg object-cover" />
             </div>
 
             <div className="rounded-2xl border-2 border-ink bg-surface p-7 shadow-card">
@@ -784,6 +841,17 @@ function EventDetailPage({ events, registeredEventIds, onToggleRegistration, loa
   );
 }
 
+/** Most favourited first, so the feed sidebar shows the community's highlights rather than the newest drafts. */
+function featuredProjects(projects: Project[]): Project[] {
+  return [...projects].sort((first, second) => (second.favorites ?? 0) - (first.favorites ?? 0));
+}
+
+/** Open events first, then the rest; the feed sidebar shows the top three. */
+function upcomingEvents(events: Event[]): Event[] {
+  const isOpen = (event: Event) => event.status === 'Inscrições abertas';
+  return [...events.filter(isOpen), ...events.filter((event) => !isOpen(event))];
+}
+
 function LoadingPage() {
   return (
     <div className="mx-auto max-w-[1344px] px-4 py-16 sm:px-6 md:px-12">
@@ -807,6 +875,7 @@ function NotFoundPage() {
 export default function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <AuthProvider>
         <ToastProvider>
           <AppDataProvider>

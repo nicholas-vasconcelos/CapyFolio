@@ -23,6 +23,7 @@ import { textOn } from './theme';
 const makeProject = (id: string, overrides: Partial<Project> = {}): Project => ({
   id,
   title: `Projeto ${id}`,
+  images: [],
   shortDescription: '',
   summary: '',
   keyResults: ['Redução de 40% no tempo de processamento.'],

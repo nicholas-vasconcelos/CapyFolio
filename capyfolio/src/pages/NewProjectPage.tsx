@@ -26,6 +26,7 @@ import {
 } from '../lib/projectRules';
 import { normalizeUrl } from '../lib/url';
 import type { User } from '../types';
+import { PhotoPicker, usePickedPhotos } from '../components/PhotoPicker';
 
 export type ProjectAttachment =
   | { id: string; kind: 'file'; file: File }
@@ -44,14 +45,19 @@ export interface NewProjectSubmission {
   tags: string[];
   url: string;
   attachments: ProjectAttachment[];
+  /** Up to three photos; the first is the cover. Uploaded by the caller. */
+  photos: File[];
   setAsFeatured: boolean;
 }
+
+export const PROJECT_MAX_PHOTOS = 3;
 
 const STEPS: readonly WizardStep[] = [
   { label: 'Básico', title: 'Sobre o projeto', lead: 'Dê um título e escolha o tipo, a área e a situação do projeto.' },
   { label: 'Conteúdo', title: 'Resumo e metodologia', lead: `Explique o projeto em até ${PROJECT_LIMITS.summaryWords} palavras e como ele foi feito em até ${PROJECT_LIMITS.methodologyWords}.` },
   { label: 'Resultados', title: 'Período e resultados', lead: `Informe quando o projeto aconteceu (nos últimos ${PROJECT_LIMITS.periodYears} anos) e até ${PROJECT_LIMITS.keyResults} resultados mensuráveis.` },
   { label: 'Tags', title: 'Tags do projeto', lead: `Escolha de ${PROJECT_LIMITS.minTags} a ${PROJECT_LIMITS.maxTags} tags da lista. Elas ajudam outras pessoas a encontrar o projeto.` },
+  { label: 'Fotos', title: 'Fotos do projeto', lead: `Mostre o projeto em até ${PROJECT_MAX_PHOTOS} fotos: protótipo, equipe, resultados. A primeira vira a capa.` },
   { label: 'Links', title: 'Links e arquivos', lead: `Adicione o repositório e até ${PROJECT_LIMITS.attachments} anexos: arquivos de até 10 MB ou links.` },
 ];
 
@@ -83,6 +89,7 @@ export function NewProjectPage({ currentUser, onSubmit }: {
   const [results, setResults] = useState<KeyResultDraft[]>([{ description: '', value: '' }]);
   const [tags, setTags] = useState<string[]>([]);
   const [attachments, setAttachments] = useState<ProjectAttachment[]>([]);
+  const [photos, setPhotos] = usePickedPhotos();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -129,7 +136,7 @@ export function NewProjectPage({ currentUser, onSubmit }: {
       else if (tags.some((tag) => !isCatalogTag(tag))) next.tags = 'Tags: use só tags da lista.';
     }
 
-    if (index === 4) {
+    if (index === 5) {
       if (form.url.trim()) add('url', checkProjectLink(form.url, 'Repositório'));
       attachments.forEach((attachment) => {
         if (attachment.kind === 'file') add(`attachment-${attachment.id}`, checkProjectFile(attachment.file));
@@ -188,6 +195,7 @@ export function NewProjectPage({ currentUser, onSubmit }: {
       tags,
       url: normalizeUrl(form.url) ?? '',
       attachments: attachments.map((entry) => (entry.kind === 'link' ? { ...entry, name: entry.name.trim(), url: normalizeUrl(entry.url) ?? '' } : entry)),
+      photos: photos.map((photo) => photo.file),
       setAsFeatured: form.setAsFeatured,
     });
     setIsSubmitting(false);
@@ -308,6 +316,17 @@ export function NewProjectPage({ currentUser, onSubmit }: {
           )}
 
           {step === 4 && (
+            <PhotoPicker
+              photos={photos}
+              onChange={setPhotos}
+              max={PROJECT_MAX_PHOTOS}
+              label="Fotos"
+              hint="PNG, JPEG ou WebP, até 5 MB cada. Elas aparecem na página do projeto e a primeira nos cartões."
+              coverHint
+            />
+          )}
+
+          {step === 5 && (
             <>
               <Field id="projeto-url" label="Repositório ou página do projeto" optional error={errors.url} hint={`Links aceitos: ${allowedHostsLabel}.`}>
                 <input id="projeto-url" className="cf-input" inputMode="url" value={form.url} onChange={(event) => set('url')(event.target.value)} placeholder="github.com/seu-usuario/projeto" maxLength={300} {...errorProps('projeto-url', errors.url)} />

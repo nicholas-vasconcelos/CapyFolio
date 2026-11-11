@@ -73,6 +73,7 @@ describe('formatProjectDate', () => {
 
 const profileRow: ProfileRow = {
   id: 'p-1',
+  hero_color: null,
   name: 'Gabriel Costa',
   role: null,
   focus: 'Dados',
@@ -131,7 +132,7 @@ describe('content mappers', () => {
       methodology: 'M', files: [{ name: 'a.pdf', size: '1 MB', type: 'PDF' }], institution: 'UFF', area: 'Dados',
       type: 'Pesquisa', status: 'Em andamento', project_date: '2025-04-28', period: 'jan. 2024 - dez. 2025', tags: ['Python'],
       url: null, visual_type: 'spatial-map', media_url: null, is_sample: true, created_at: '2026-11-06T00:00:00Z',
-      author_ids: ['p-1', 'p-2'], author_names: 'Gabriel Costa, Mariana Alves', favorites: 43,
+      author_ids: ['p-1', 'p-2'], author_names: 'Gabriel Costa, Mariana Alves', favorites: 43, images: [],
     };
     expect(toProject(row)).toMatchObject({
       id: 'proj-1', date: '28 abr. 2025', authorIds: ['p-1', 'p-2'], authorNames: 'Gabriel Costa, Mariana Alves',
@@ -145,7 +146,7 @@ describe('content mappers', () => {
       starts_at: '2025-05-15T17:00:00+00:00', ends_at: '2025-05-15T21:00:00+00:00', location: 'Auditório', city: 'Niterói, RJ',
       organizer: 'UFF', modality: 'Presencial', tags: [], short_description: '', about_text: '',
       speakers: [{ id: 'sp1', name: 'Ana', role: 'Pesquisadora' }], schedule: null, is_sample: true,
-      created_at: '2026-11-06T00:00:00Z', attendees_count: 149,
+      created_at: '2026-11-06T00:00:00Z', attendees_count: 149, cover_url: null,
     };
     const event = toEvent(row);
     expect(event.date).toBe('15 mai. 2025, 14:00 - 18:00');
@@ -158,7 +159,7 @@ describe('content mappers', () => {
     const post: PostRow = {
       id: 'post-1', author_id: 'p-1', category: 'Dados', content: 'Oi', related_project_id: 'proj-1', related_event_id: null,
       is_sample: true, created_at: ago(3 * HOUR), author_name: 'Gabriel Costa', author_role: 'Ciência da Computação • 7º Período',
-      author_institution: 'UFF', author_avatar: null, is_organization: false, likes: 55, liked_by_me: true,
+      author_institution: 'UFF', author_avatar: null, is_organization: false, likes: 55, liked_by_me: true, images: [],
     };
     const comments: CommentRow[] = [
       { id: 'c-1', post_id: 'post-1', author_id: null, author_name: 'Ana Clara Souza', author_institution: 'UFRJ', text: 'Ótimo', created_at: ago(HOUR) },

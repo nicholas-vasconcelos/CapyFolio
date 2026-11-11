@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { AlertCircle, Eye, EyeOff, MailCheck, MessageSquare, Search, Share2 } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff, MailCheck, MessageSquare, PlayCircle, Search, Share2 } from 'lucide-react';
 import capyMascot from '../assets/capy-mascot.png';
 import { CapyWordmark } from '../components/CapyWordmark';
 import { authService } from '../services/authService';
 import { setRememberSession } from '../lib/supabase';
 
-/** `onLogin` resolves to `true` when signed in, otherwise to the pt-BR error message to show. */
-export function LoginPage({ onLogin }: { onLogin: (email: string, password: string) => Promise<true | string> }) {
+/** `onLogin` and `onDemoLogin` resolve to `true` when signed in, otherwise to the pt-BR error message to show. */
+export function LoginPage({ onLogin, onDemoLogin }: {
+  onLogin: (email: string, password: string) => Promise<true | string>;
+  onDemoLogin: () => Promise<true | string>;
+}) {
   const navigate = useNavigate();
   const location = useLocation();
   const [email, setEmail] = useState('');
@@ -34,6 +37,21 @@ export function LoginPage({ onLogin }: { onLogin: (email: string, password: stri
 
     const redirectTo = (location.state as { from?: string } | null)?.from || '/feed';
     navigate(redirectTo, { replace: true });
+  };
+
+  const handleDemo = async () => {
+    setError('');
+    setNotice('');
+    setIsSubmitting(true);
+    // The demo session never needs to survive a browser restart.
+    setRememberSession(false);
+    const result = await onDemoLogin();
+    setIsSubmitting(false);
+    if (result !== true) {
+      setError(result);
+      return;
+    }
+    navigate('/feed', { replace: true });
   };
 
   const handleUnavailable = () => {
@@ -179,6 +197,14 @@ export function LoginPage({ onLogin }: { onLogin: (email: string, password: stri
               <span className="h-[2px] flex-1 bg-line" />
               <span>ou</span>
               <span className="h-[2px] flex-1 bg-line" />
+            </div>
+
+            <div className="mb-3 flex flex-col gap-2">
+              <button type="button" onClick={handleDemo} disabled={isSubmitting} className="cf-btn cta lg w-full disabled:opacity-70">
+                <PlayCircle className="h-[22px] w-[22px]" aria-hidden="true" />
+                Explorar sem cadastro
+              </button>
+              <p className="m-0 text-center text-sm text-ink-muted">Entre na conta de demonstração. Nada do que você fizer será salvo.</p>
             </div>
 
             <button type="button" onClick={handleUnavailable} className="cf-btn lg w-full">

@@ -7,7 +7,9 @@ export function EventCard({ event, isRegistered, onToggleRegistration }: { event
   const isOpen = event.status === 'Inscrições abertas';
 
   // Covers without an image: flat navy field with the hero dot grid and the calendar (Evento) icon in a tile.
-  const cover = event.category === 'Palestra' || event.category === 'Simpósio' ? <LlmEventCover /> : (
+  const cover = event.cover ? (
+    <img src={event.cover} alt="" loading="lazy" className="h-48 w-full rounded-lg border-2 border-ink object-cover sm:h-52" />
+  ) : event.category === 'Palestra' || event.category === 'Simpósio' ? <LlmEventCover /> : (
     <div className="flex h-48 w-full items-end overflow-hidden rounded-lg border-2 border-ink bg-navy bg-[radial-gradient(var(--dot-grid)_1.5px,transparent_1.5px)] bg-[size:26px_26px] p-4 sm:h-52">
       <div className="flex items-center gap-2.5">
         <span className="flex h-11 w-11 items-center justify-center rounded-sm border-2 border-ink bg-gold text-ink">

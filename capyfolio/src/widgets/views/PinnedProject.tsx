@@ -4,6 +4,7 @@ import type { WidgetViewProps } from '../viewTypes';
 import { WidgetHeading } from '../WidgetHeading';
 import { ProjectLink } from './ProjectLink';
 import { fmt, t } from '../../i18n';
+import { PhotoGrid } from '../../components/PhotoGrid';
 
 /** Icon for a cover without an image, following the system's fixed icon meanings. */
 const coverIcon = (area: string) => {
@@ -19,19 +20,23 @@ const TOPO_RINGS = {
   backgroundImage: 'repeating-radial-gradient(circle at 78% 120%, transparent 0 22px, var(--green-ink) 22px 24px)',
 };
 
-function ProjectCover({ project }: { project: Project }) {
-  if (project.media) {
+/** Cover height per size: the hero and small tiles get a shorter photo so the text still fits. */
+const COVER_HEIGHT = { P: 'h-40', M: 'h-44', G: 'h-44 md:h-52' } as const;
+
+function ProjectCover({ project, size }: { project: Project; size: 'P' | 'M' | 'G' }) {
+  const photo = project.images[0] ?? project.media;
+  if (photo) {
     return (
       <img
-        src={project.media}
+        src={photo}
         alt={fmt(t.views.projectCover, { title: project.title })}
-        className="h-44 w-full rounded-lg border-2 border-ink object-cover md:h-52"
+        className={`${COVER_HEIGHT[size]} w-full rounded-lg border-2 border-ink object-cover`}
       />
     );
   }
 
   return (
-    <div className="flex h-44 w-full items-end rounded-lg border-2 border-ink bg-brand-green p-4 md:h-52" style={TOPO_RINGS} aria-hidden="true">
+    <div className={`flex ${COVER_HEIGHT[size]} w-full items-end rounded-lg border-2 border-ink bg-brand-green p-4`} style={TOPO_RINGS} aria-hidden="true">
       <span className="flex h-[60px] w-[60px] items-center justify-center rounded-sm border-2 border-ink bg-paper text-ink">
         {coverIcon(project.area)}
       </span>
@@ -51,7 +56,12 @@ export function PinnedProjectView({ widget, ctx, inHero, colors, headingId }: Wi
     <>
       <WidgetHeading id={headingId} colors={colors}>{t.views.pinnedHeading}</WidgetHeading>
 
-      {size === 'G' && <ProjectCover project={project} />}
+      {/* Large: every photo of the project (opens full size). Smaller and in the hero: the cover. */}
+      {size === 'G' && project.images.length > 1 ? (
+        <PhotoGrid images={project.images} alt={project.title} />
+      ) : (
+        <ProjectCover project={project} size={size as 'P' | 'M' | 'G'} />
+      )}
 
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <span className={`cf-tag ${project.status === 'Concluído' ? 'done' : 'progress'} px-3 py-1 text-[13px]`}>{project.status}</span>

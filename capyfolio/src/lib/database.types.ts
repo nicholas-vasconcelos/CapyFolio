@@ -172,6 +172,7 @@ export type Database = {
         Row: {
           about_text: string | null
           attendees_base: number
+          cover_url: string | null
           category: string | null
           city: string | null
           created_at: string
@@ -192,6 +193,7 @@ export type Database = {
         Insert: {
           about_text?: string | null
           attendees_base?: number
+          cover_url?: string | null
           category?: string | null
           city?: string | null
           created_at?: string
@@ -212,6 +214,7 @@ export type Database = {
         Update: {
           about_text?: string | null
           attendees_base?: number
+          cover_url?: string | null
           category?: string | null
           city?: string | null
           created_at?: string
@@ -287,6 +290,7 @@ export type Database = {
           id: string
           is_sample: boolean
           likes_base: number
+          images: string[]
           related_event_id: string | null
           related_project_id: string | null
         }
@@ -298,6 +302,7 @@ export type Database = {
           id?: string
           is_sample?: boolean
           likes_base?: number
+          images?: string[]
           related_event_id?: string | null
           related_project_id?: string | null
         }
@@ -309,6 +314,7 @@ export type Database = {
           id?: string
           is_sample?: boolean
           likes_base?: number
+          images?: string[]
           related_event_id?: string | null
           related_project_id?: string | null
         }
@@ -397,6 +403,7 @@ export type Database = {
           course: string | null
           education_level: string | null
           education_status: string | null
+          hero_color: string | null
           created_at: string
           email_confirmed: boolean
           featured_project_id: string | null
@@ -427,6 +434,7 @@ export type Database = {
           course?: string | null
           education_level?: string | null
           education_status?: string | null
+          hero_color?: string | null
           created_at?: string
           email_confirmed?: boolean
           featured_project_id?: string | null
@@ -457,6 +465,7 @@ export type Database = {
           course?: string | null
           education_level?: string | null
           education_status?: string | null
+          hero_color?: string | null
           created_at?: string
           email_confirmed?: boolean
           featured_project_id?: string | null
@@ -601,6 +610,7 @@ export type Database = {
           is_sample: boolean
           key_results: string[]
           media_url: string | null
+          images: string[]
           methodology: string | null
           period: string | null
           project_date: string
@@ -624,6 +634,7 @@ export type Database = {
           is_sample?: boolean
           key_results?: string[]
           media_url?: string | null
+          images?: string[]
           methodology?: string | null
           period?: string | null
           project_date?: string
@@ -647,6 +658,7 @@ export type Database = {
           is_sample?: boolean
           key_results?: string[]
           media_url?: string | null
+          images?: string[]
           methodology?: string | null
           period?: string | null
           project_date?: string
@@ -723,6 +735,7 @@ export type Database = {
         Row: {
           about_text: string | null
           attendees_count: number | null
+          cover_url: string | null
           category: string | null
           city: string | null
           created_at: string | null
@@ -743,6 +756,7 @@ export type Database = {
         Insert: {
           about_text?: string | null
           attendees_count?: never
+          cover_url?: string | null
           category?: string | null
           city?: string | null
           created_at?: string | null
@@ -763,6 +777,7 @@ export type Database = {
         Update: {
           about_text?: string | null
           attendees_count?: never
+          cover_url?: string | null
           category?: string | null
           city?: string | null
           created_at?: string | null
@@ -796,6 +811,7 @@ export type Database = {
           is_organization: boolean | null
           is_sample: boolean | null
           liked_by_me: boolean | null
+          images: string[] | null
           likes: number | null
           related_event_id: string | null
           related_project_id: string | null
@@ -854,6 +870,7 @@ export type Database = {
           course: string | null
           education_level: string | null
           education_status: string | null
+          hero_color: string | null
           created_at: string | null
           featured_project_id: string | null
           focus: string | null
@@ -881,6 +898,7 @@ export type Database = {
           course?: string | null
           education_level?: string | null
           education_status?: string | null
+          hero_color?: string | null
           created_at?: string | null
           featured_project_id?: string | null
           focus?: string | null
@@ -908,6 +926,7 @@ export type Database = {
           course?: string | null
           education_level?: string | null
           education_status?: string | null
+          hero_color?: string | null
           created_at?: string | null
           featured_project_id?: string | null
           focus?: string | null
@@ -958,6 +977,7 @@ export type Database = {
           is_sample: boolean | null
           key_results: string[] | null
           media_url: string | null
+          images: string[] | null
           methodology: string | null
           period: string | null
           project_date: string | null

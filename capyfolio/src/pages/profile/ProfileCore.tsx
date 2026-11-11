@@ -7,6 +7,7 @@ import { isDefaultAvatar } from '../../lib/defaultAvatars';
 import type { User } from '../../types';
 import { plural, t } from '../../i18n';
 import { HeroActions } from './HeroActions';
+import { heroColorClass } from '../../lib/heroColors';
 
 /*
  * The fixed part of every profile ("Layout A, revised"): the navy hero and the
@@ -35,6 +36,8 @@ interface ProfileCoreProps {
   onUseDefaultPhoto?: () => Promise<void>;
   /** Owner in edit mode: saves the specialties. Rejects with a pt-BR message. */
   onChangeTags?: (tags: string[]) => Promise<void>;
+  /** Owner in edit mode: the hero colour picker, shown under the bio. */
+  heroColorPicker?: ReactNode;
 }
 
 /** The "Especialidades" panel; in edit mode the owner can open the tag picker in place. */
@@ -162,12 +165,12 @@ function LockNote() {
 
 const formatConnections = (count: number): string => plural(count, t.profile.connectionsOne, t.profile.connectionsOther);
 
-export function ProfileCore({ user, isOwnProfile, isConnected, onToggleConnect, onOpenNewProject, heroSlot, isEditing = false, onToggleEditing, showLock = isEditing, onChangePhoto, onUseDefaultPhoto, onChangeTags }: ProfileCoreProps) {
+export function ProfileCore({ user, isOwnProfile, isConnected, onToggleConnect, onOpenNewProject, heroSlot, isEditing = false, onToggleEditing, showLock = isEditing, onChangePhoto, onUseDefaultPhoto, onChangeTags, heroColorPicker }: ProfileCoreProps) {
   const studyLine = [user.course, user.institution, user.location].filter(Boolean).join(' · ');
 
   return (
     <>
-      <section className="capy-hero-shell overflow-hidden">
+      <section className={`capy-hero-shell overflow-hidden ${heroColorClass(user.heroColor)}`}>
         <div className="relative mx-auto box-border flex max-w-[1344px] flex-col gap-8 px-4 pb-24 pt-20 sm:px-6 md:px-12 md:pb-[120px] md:pt-24 xl:flex-row xl:items-start xl:justify-between">
           {/* Top row, above the content: the lock note on the left, the actions on the right.
               Kept out of the columns so the photo and the hero widget start at the same height. */}
@@ -225,6 +228,7 @@ export function ProfileCore({ user, isOwnProfile, isConnected, onToggleConnect, 
             <p className="mt-8 max-w-[62ch] text-base leading-[1.6] text-on-navy-muted sm:text-[18px] md:text-[19px]">
               {user.bio || t.profile.bioFallback}
             </p>
+            {heroColorPicker}
           </div>
 
           <div className="flex flex-col gap-5 xl:flex-[0_1_380px]">

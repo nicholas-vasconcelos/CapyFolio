@@ -37,6 +37,9 @@ export function ProjectGalleryView({ widget, ctx, colors, headingId }: WidgetVie
         <ul className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(min(240px,100%),1fr))] gap-5 p-0">
           {shown.map((project) => (
             <li key={project.id} className="cf-project">
+              {(project.images[0] ?? project.media) && (
+                <img src={project.images[0] ?? project.media} alt="" loading="lazy" className="h-36 w-full rounded-lg border-2 border-ink object-cover" />
+              )}
               <span className={`cf-tag ${project.status === 'Concluído' ? 'done' : 'progress'} self-start px-3 py-1 text-[13px]`}>{project.status}</span>
               <h3 className="m-0 font-display text-[21px] font-bold leading-[1.2]">{project.title}</h3>
               <span className="sum">{project.area}</span>

@@ -24,6 +24,8 @@ export interface User {
   lattes?: string;
   connections?: number;
   profileLayout?: ProfileLayout;
+  /** Background of the profile hero (HeroColor key). Unset = navy. */
+  heroColor?: string;
 }
 
 export interface ProjectFile {
@@ -69,7 +71,10 @@ export interface Project {
   tags: string[];
   url?: string;
   visualType?: string;
+  /** Cover image; the same as images[0] when the project has photos. */
   media?: string;
+  /** Up to three photos, shown on the card (first) and the project page. */
+  images: string[];
   favorites?: number;
 }
 
@@ -89,6 +94,8 @@ export interface Event {
   speakers: Speaker[];
   schedule: ScheduleItem[];
   attendeesCount: number;
+  /** Cover photo URL, when the event has one. */
+  cover?: string;
 }
 
 export interface Comment {
@@ -115,6 +122,8 @@ export interface Post {
   relatedEventId?: string | null;
   likes: number;
   likedByMe: boolean;
+  /** Up to four photo URLs. */
+  images: string[];
   comments: Comment[];
 }
 
